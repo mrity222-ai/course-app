@@ -1,0 +1,5 @@
+node_modules/
+dist/
+packager.log
+pack2.log
+.git/
