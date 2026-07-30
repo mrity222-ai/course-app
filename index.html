@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>codewith_ai - Complete HTML Tutorial in Hinglish</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Plus+Jakarta+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=21">
+    <script>
+        window.addEventListener('error', function(e) {
+            var errDiv = document.createElement('div');
+            errDiv.style.position = 'fixed';
+            errDiv.style.bottom = '20px';
+            errDiv.style.right = '20px';
+            errDiv.style.background = '#ef4444';
+            errDiv.style.color = 'white';
+            errDiv.style.padding = '15px';
+            errDiv.style.zIndex = '99999';
+            errDiv.style.fontFamily = 'monospace';
+            errDiv.style.fontSize = '12px';
+            errDiv.style.borderRadius = '8px';
+            errDiv.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.3)';
+            errDiv.innerHTML = '<b>JS Runtime Error:</b><br>' + e.message + '<br>at ' + e.filename.split('/').pop() + ':' + e.lineno;
+            document.body.appendChild(errDiv);
+        });
+    </script>
+</head>
+<body>
+    <!-- Top Header -->
+    <header class="app-header">
+        <div class="logo-container">
+            <img src="assets/logo.jpg" alt="codewith_ai Logo" class="app-logo">
+            <span class="logo-text">codewith<span>_ai</span></span>
+        </div>
+        <div class="header-actions">
+            <button id="btn-print" class="btn btn-primary" onclick="window.print()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+                PDF / Print Course
+            </button>
+            <button id="btn-theme" class="btn btn-secondary" onclick="cycleTheme()" title="Cycle Themes (Dark/Light/Cyberpunk/Nord)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+            </button>
+            <button id="btn-speech" class="speech-control-btn" onclick="toggleSpeech()" title="Kahani Suno (Listen Slide)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3>Web Dev Roadmap</h3>
+                <p>Full-Stack Course</p>
+            </div>
+            <div class="sidebar-dashboard">
+                <div class="dashboard-title">My Progress</div>
+                <div class="dashboard-metric">
+                    <span>Overall Course Completed</span>
+                    <span id="overall-percentage">0%</span>
+                </div>
+                <div class="dashboard-progress-bar">
+                    <div class="dashboard-progress-fill" id="overall-progress-fill"></div>
+                </div>
+
+                <div class="dashboard-metric" style="margin-top: 0.75rem;">
+                    <span>Student Rank / XP</span>
+                    <span id="student-level" style="font-weight: 700; color: #c084fc;">Level 1 (Novice)</span>
+                </div>
+                <div class="dashboard-progress-bar" style="background: rgba(168,85,247,0.15);">
+                    <div class="dashboard-progress-fill" id="xp-progress-fill" style="width: 0%; background: linear-gradient(90deg, #c084fc 0%, #a855f7 100%);"></div>
+                </div>
+
+                <!-- Instant Search Bar -->
+                <div class="sidebar-search-box" style="margin-top: 1.25rem;">
+                    <input type="text" id="sidebar-search" oninput="filterSidebarSlides()" placeholder="🔍 Search slides..." style="width: 100%; padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white; font-size: 0.8rem; box-sizing: border-box;">
+                </div>
+
+                <!-- Badges Grid Display -->
+                <div class="dashboard-title" style="margin-top: 1.25rem; margin-bottom: 0.5rem;">My Badges</div>
+                <div class="badges-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; justify-items: center;">
+                    <span class="badge-icon locked" id="badge-html" title="HTML Web Builder">🌐</span>
+                    <span class="badge-icon locked" id="badge-css" title="CSS Stylist">🎨</span>
+                    <span class="badge-icon locked" id="badge-js" title="JS Ninja">⚡</span>
+                    <span class="badge-icon locked" id="badge-react" title="React Wizard">⚛️</span>
+                    <span class="badge-icon locked" id="badge-backend" title="Backend Architect">⚙️</span>
+                    <span class="badge-icon locked" id="badge-advbackend" title="Docker Captain">🐳</span>
+                    <span class="badge-icon locked" id="badge-vps" title="VPS Deployer">☁️</span>
+                    <span class="badge-icon locked" id="badge-nextjs" title="NextJS Developer">🚀</span>
+                </div>
+                
+                <!-- GitHub-style Streaks Heatmap -->
+                <div class="dashboard-title" style="margin-top: 1.25rem; margin-bottom: 0.5rem;">Coding Streaks</div>
+                <div id="consistency-heatmap" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; padding: 0.5rem; background: rgba(0,0,0,0.15); border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); width: fit-content; margin: 0 auto; margin-bottom: 1rem;">
+                    <!-- 28 squares will go here -->
+                </div>
+            </div>
+            <nav class="levels-nav">
+                <!-- HTML Module -->
+                <div class="accordion-item active" id="accordion-html">
+                    <button class="accordion-header" onclick="toggleAccordion(0)">
+                        <span class="header-title">HTML Course</span>
+                        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="level-group" id="nav-level-1">
+                            <div class="level-title">Level 1: Introduction</div>
+                            <ul class="slide-list">
+                                <li class="slide-link active" data-slide="0">1. Welcome to HTML</li>
+                                <li class="slide-link" data-slide="1">2. Level 1 Intro</li>
+                                <li class="slide-link" data-slide="2">3. Web Basics (HTML/CSS/JS)</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-level-2">
+                            <div class="level-title">Level 2: Our First Site</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="3">4. Level 2 Intro</li>
+                                <li class="slide-link" data-slide="4">5. Basic HTML Page Structure</li>
+                                <li class="slide-link" data-slide="5">6. HTML Comments & Case</li>
+                                <li class="slide-link" data-slide="6">7. Level-2 Practice Sheet</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-level-3">
+                            <div class="level-title">Level 3: Basic Tags</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="7">8. Level 3 Intro</li>
+                                <li class="slide-link" data-slide="8">9. Elements & Attributes</li>
+                                <li class="slide-link" data-slide="9">10. Heading & Paragraph</li>
+                                <li class="slide-link" data-slide="10">11. Links, Images & Styles</li>
+                                <li class="slide-link" data-slide="11">12. Breaks, Rulers & Scripts</li>
+                                <li class="slide-link" data-slide="12">13. Preformatted Text (pre)</li>
+                                <li class="slide-link" data-slide="13">14. Level-3 Practice Sheet</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-level-4">
+                            <div class="level-title">Level 4: Layouts</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="14">15. Level 4 Intro</li>
+                                <li class="slide-link" data-slide="15">16. Creating Page Layout</li>
+                                <li class="slide-link" data-slide="16">17. Advanced Links & Images</li>
+                                <li class="slide-link" data-slide="17">18. Containers (Div vs Span)</li>
+                                <li class="slide-link" data-slide="18">19. Level-4 Practice Sheet</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-level-5">
+                            <div class="level-title">Level 5: Lists & Forms</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="19">20. Level 5 Intro</li>
+                                <li class="slide-link" data-slide="20">21. Lists (Ordered & Unordered)</li>
+                                <li class="slide-link" data-slide="21">22. Tables Structure</li>
+                                <li class="slide-link" data-slide="22">23. Colspan Attribute</li>
+                                <li class="slide-link" data-slide="23">24. HTML Forms</li>
+                                <li class="slide-link" data-slide="24">25. Video & Audio Elements</li>
+                                <li class="slide-link" data-slide="25">26. Level-5 Practice Sheet</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CSS Module -->
+                <div class="accordion-item" id="accordion-css">
+                    <button class="accordion-header" onclick="toggleAccordion(1)">
+                        <span class="header-title">CSS Course</span>
+                        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="level-group" id="nav-level-0">
+                            <div class="level-title">Level 0: Intro</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="26">27. Introduction to CSS</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-level-6">
+                            <div class="level-title">Level 1: CSS Basics</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="27">28. Our First CSS Site</li>
+                                <li class="slide-link" data-slide="28">29. ID & Class Attributes</li>
+                                <li class="slide-link" data-slide="29">30. Three Ways to Add CSS</li>
+                                <li class="slide-link" data-slide="30">31. CSS Element & ID Selectors</li>
+                                <li class="slide-link" data-slide="31">32. Class & Universal Selectors</li>
+                                <li class="slide-link" data-slide="32">33. Selector Grouping & Comments</li>
+                                <li class="slide-link" data-slide="33">34. Level-1 Practice Sheet</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-level-7-colors">
+                            <div class="level-title">Level 2: Colors & Backgrounds</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="34">35. CSS Colors Property</li>
+                                <li class="slide-link" data-slide="35">36. Background Color & Image</li>
+                                <li class="slide-link" data-slide="36">37. Background Repeat & Size</li>
+                                <li class="slide-link" data-slide="37">38. Background Position & Shorthand</li>
+                                <li class="slide-link" data-slide="38">39. Level-2 Practice Sheet</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-level-7-boxmodel">
+                            <div class="level-title">Level 3: Box Model</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="39">40. The CSS Box Model</li>
+                                <li class="slide-link" data-slide="40">41. Margin & Padding Shorthand</li>
+                                <li class="slide-link" data-slide="41">42. Setting Borders</li>
+                                <li class="slide-link" data-slide="42">43. Margin Collapse & Box Sizing</li>
+                                <li class="slide-link" data-slide="43">44. Level-3 Practice Sheet</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-level-7-fonts">
+                            <div class="level-title">Level 4: Fonts & Display</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="44">45. Display Property</li>
+                                <li class="slide-link" data-slide="45">46. Display None & Text Align</li>
+                                <li class="slide-link" data-slide="46">47. Text Decoration & Transform</li>
+                                <li class="slide-link" data-slide="47">48. Font Family & Size</li>
+                                <li class="slide-link" data-slide="48">49. Level-4 Practice Sheet</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-level-7-positions">
+                            <div class="level-title">Level 5: Position & Sizing</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="49">50. CSS Relative Sizing</li>
+                                <li class="slide-link" data-slide="50">51. Position Property</li>
+                                <li class="slide-link" data-slide="51">52. Z-Index Stacking</li>
+                                <li class="slide-link" data-slide="52">53. Level-5 Practice Sheet</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-level-7-flexbox">
+                            <div class="level-title">Level 6: Flexbox</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="53">54. Float, Clear & Flex Intro</li>
+                                <li class="slide-link" data-slide="54">55. Flexbox Container Properties</li>
+                                <li class="slide-link" data-slide="55">56. Flexbox Item Properties</li>
+                                <li class="slide-link" data-slide="56">57. Level-6 Practice Sheet</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-level-7-grid">
+                            <div class="level-title">Level 7: Grid & Media Queries</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="57">58. CSS Grid Basics</li>
+                                <li class="slide-link" data-slide="58">59. Grid Container Properties</li>
+                                <li class="slide-link" data-slide="59">60. Grid Item Properties</li>
+                                <li class="slide-link" data-slide="60">61. CSS Media Queries</li>
+                                <li class="slide-link" data-slide="61">62. Level-7 Practice Sheet</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-level-7-transforms">
+                            <div class="level-title">Level 8: Animation & Project</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="62">63. CSS Transforms</li>
+                                <li class="slide-link" data-slide="63">64. Transitions & Animations</li>
+                                <li class="slide-link" data-slide="64">65. Level-8 Practice Sheet</li>
+                                <li class="slide-link" data-slide="65">66. Project: Netflix Clone</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- JavaScript Module -->
+                <div class="accordion-item" id="accordion-js">
+                    <button class="accordion-header" onclick="toggleAccordion(2)">
+                        <span class="header-title">JavaScript Course</span>
+                        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="level-group" id="nav-level-8-intro">
+                            <div class="level-title">Level 0: Intro</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="66">67. Introduction to JS</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-level-8-vars">
+                            <div class="level-title">Level 1: Variables & Data Types</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="67">68. Declaration of Variables</li>
+                                <li class="slide-link" data-slide="68">69. Rules for Variable Names</li>
+                                <li class="slide-link" data-slide="69">70. Primitive Types & Objects</li>
+                                <li class="slide-link" data-slide="70">71. Level-1 Practice Sheet</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-level-8-ops">
+                            <div class="level-title">Level 2: Operators & Conditionals</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="71">72. Operators in JS</li>
+                                <li class="slide-link" data-slide="72">73. Logical & Comparison</li>
+                                <li class="slide-link" data-slide="73">74. Conditional Statements</li>
+                                <li class="slide-link" data-slide="74">75. Level-2 Practice Sheet</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-level-8-loops">
+                            <div class="level-title">Level 3: Loops & Functions</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="75">76. Loops in JS</li>
+                                <li class="slide-link" data-slide="76">77. For-in & For-of Loops</li>
+                                <li class="slide-link" data-slide="77">78. Functions in JS</li>
+                                <li class="slide-link" data-slide="78">79. Level-3 Practice Sheet</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-level-8-strings">
+                            <div class="level-title">Level 4: Strings</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="79">80. Strings & Literals</li>
+                                <li class="slide-link" data-slide="80">81. String Properties & Methods</li>
+                                <li class="slide-link" data-slide="81">82. Level-4 Practice Sheet</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-level-8-arrays">
+                            <div class="level-title">Level 5: Arrays</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="82">83. Arrays & Accessing</li>
+                                <li class="slide-link" data-slide="83">84. Methods of Arrays</li>
+                                <li class="slide-link" data-slide="84">85. Looping through Arrays</li>
+                                <li class="slide-link" data-slide="85">86. Level-5 Practice Sheet</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-level-8-dom">
+                            <div class="level-title">Level 6: Document Object Model</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="86">87. Console Object Methods</li>
+                                <li class="slide-link" data-slide="87">88. Alert, Prompt & Confirm</li>
+                                <li class="slide-link" data-slide="88">89. Window Object, BOM & DOM</li>
+                                <li class="slide-link" data-slide="89">90. Walking the DOM</li>
+                                <li class="slide-link" data-slide="90">91. Searching the DOM</li>
+                                <li class="slide-link" data-slide="91">92. Level-6 Practice Sheet</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-level-8-events">
+                            <div class="level-title">Level 7: Events & Properties</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="92">93. DOM Attribute Methods</li>
+                                <li class="slide-link" data-slide="93">94. innerHTML & outerHTML</li>
+                                <li class="slide-link" data-slide="94">95. DOM Insertion Methods</li>
+                                <li class="slide-link" data-slide="95">96. Adjacent HTML & Classes</li>
+                                <li class="slide-link" data-slide="96">97. Timers & DOM Events</li>
+                                <li class="slide-link" data-slide="97">98. Level-7 Practice Sheet</li>
+                                <li class="slide-link" data-slide="98">99. Project-1: Digital Clock</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-level-8-async">
+                            <div class="level-title">Level 8: Async JS & APIs</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="99">100. Sync vs Async Actions</li>
+                                <li class="slide-link" data-slide="100">101. Callbacks & Promises</li>
+                                <li class="slide-link" data-slide="101">102. Async - Await</li>
+                                <li class="slide-link" data-slide="102">103. Fetch API & JSON</li>
+                                <li class="slide-link" data-slide="103">104. Project-2: Weather App</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- React Module -->
+                <div class="accordion-item" id="accordion-react">
+                    <button class="accordion-header" onclick="toggleAccordion(3)">
+                        <span class="header-title">React Course</span>
+                        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="level-group" id="nav-react-level-1">
+                            <div class="level-title">Level 1: Introduction to React</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="104">105. What is React?</li>
+                                <li class="slide-link" data-slide="105">106. React DOM & Architecture</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-react-level-2">
+                            <div class="level-title">Level 2: Create React App</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="106">107. Popular Utilities & Setup</li>
+                                <li class="slide-link" data-slide="107">108. What is JSX?</li>
+                                <li class="slide-link" data-slide="108">109. JSX Syntaxes & Rules</li>
+                                <li class="slide-link" data-slide="109">110. Project 1: Layout Box</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-react-level-3">
+                            <div class="level-title">Level 3: Props in React</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="110">111. Introduction to Props</li>
+                                <li class="slide-link" data-slide="111">112. Props Arguments Example</li>
+                                <li class="slide-link" data-slide="112">113. Project 2: Cars Cards Grid</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-react-level-4">
+                            <div class="level-title">Level 4: Hooks in React</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="113">114. Introduction to Hooks</li>
+                                <li class="slide-link" data-slide="114">115. useState Hook</li>
+                                <li class="slide-link" data-slide="115">116. useEffect Hook</li>
+                                <li class="slide-link" data-slide="116">117. useEffect Dependencies</li>
+                                <li class="slide-link" data-slide="117">118. useRef Hook</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-react-level-5">
+                            <div class="level-title">Level 5: React Router</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="118">119. Single Page Routing</li>
+                                <li class="slide-link" data-slide="119">120. Project 3: Routing SPA</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-react-level-6">
+                            <div class="level-title">Level 6: Context API</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="120">121. Global State Sharing</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Backend Module -->
+                <div class="accordion-item" id="accordion-backend">
+                    <button class="accordion-header" onclick="toggleAccordion(4)">
+                        <span class="header-title">Backend Course</span>
+                        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="level-group" id="nav-backend-intro">
+                            <div class="level-title">Level 0: Intro</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="121">122. What is Backend?</li>
+                                <li class="slide-link" data-slide="122">123. Client-Server Flow</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-backend-level-1">
+                            <div class="level-title">Level 1: Intro to Node JS</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="123">124. Node JS Runtime</li>
+                                <li class="slide-link" data-slide="124">125. Setting up Node JS</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-backend-level-2">
+                            <div class="level-title">Level 2: Node HTTP Server</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="125">126. Creating HTTP Server</li>
+                                <li class="slide-link" data-slide="126">127. Routing in Node JS</li>
+                                <li class="slide-link" data-slide="127">128. Multi Route Server Code</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-backend-level-3">
+                            <div class="level-title">Level 3: Intro to Express JS</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="128">129. What is Express JS?</li>
+                                <li class="slide-link" data-slide="129">130. Express Server Code</li>
+                                <li class="slide-link" data-slide="130">131. HTTP Request Methods</li>
+                                <li class="slide-link" data-slide="131">132. Express Route Params</li>
+                                <li class="slide-link" data-slide="132">133. Express Query Params</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-backend-level-4">
+                            <div class="level-title">Level 4: REST APIs & CORS</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="133">134. RESTful API Structure</li>
+                                <li class="slide-link" data-slide="134">135. CORS Security Policy</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-backend-level-5">
+                            <div class="level-title">Level 5: Express Advanced</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="135">136. Express Middlewares</li>
+                                <li class="slide-link" data-slide="136">137. HTTP Status Codes</li>
+                                <li class="slide-link" data-slide="137">138. HTTP Headers</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-backend-level-6">
+                            <div class="level-title">Level 6: MongoDB Database</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="138">139. SQL vs NoSQL DB</li>
+                                <li class="slide-link" data-slide="139">140. Mongoose Schema & Models</li>
+                                <li class="slide-link" data-slide="140">141. CRUD Queries Syntax</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-backend-level-7">
+                            <div class="level-title">Level 7: Auth & Upload</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="141">142. Auth Flow (JWT & Bcrypt)</li>
+                                <li class="slide-link" data-slide="142">143. Multer & Cloudinary Upload</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <!-- Advanced Backend + AI Module -->
+                <div class="accordion-item" id="accordion-adv-backend">
+                    <button class="accordion-header" onclick="toggleAccordion(5)">
+                        <span class="header-title">Advanced Backend & AI</span>
+                        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="level-group" id="nav-adv-backend-intro">
+                            <div class="level-title">Level 0: Intro</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="143">144. Advanced</li>
+                                <li class="slide-link" data-slide="144">145. Part 2</li>
+                                <li class="slide-link" data-slide="145">146. “Pay what you think this course ...</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-adv-backend-revision">
+                            <div class="level-title">Level 0: Revision</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="146">147. LEVEL</li>
+                                <li class="slide-link" data-slide="147">148. Slide 5</li>
+                                <li class="slide-link" data-slide="148">149. Watch this for</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-adv-backend-docker">
+                            <div class="level-title">Level 1: Docker Containerization</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="149">150. LEVEL 1</li>
+                                <li class="slide-link" data-slide="150">151. Maan lo tumne ek backend project</li>
+                                <li class="slide-link" data-slide="151">152. Ab Friend Ko</li>
+                                <li class="slide-link" data-slide="152">153. Bhai project</li>
+                                <li class="slide-link" data-slide="153">154. Why?</li>
+                                <li class="slide-link" data-slide="154">155. Docker Ye Problem Solve Karta Hai</li>
+                                <li class="slide-link" data-slide="155">156. Real Life Example — Tiffin Box</li>
+                                <li class="slide-link" data-slide="156">157. Docker = Shipping Container</li>
+                                <li class="slide-link" data-slide="157">158. Docker Ka Main Goal</li>
+                                <li class="slide-link" data-slide="158">159. Why Companies Love Docker?</li>
+                                <li class="slide-link" data-slide="159">160. Images and Containers :</li>
+                                <li class="slide-link" data-slide="160">161. Images and Containers :</li>
+                                <li class="slide-link" data-slide="161">162. Slide 19</li>
+                                <li class="slide-link" data-slide="162">163. Simple Docker Commands</li>
+                                <li class="slide-link" data-slide="163">164. Simple Docker Commands</li>
+                                <li class="slide-link" data-slide="164">165. How Docker Works..?</li>
+                                <li class="slide-link" data-slide="165">166. How Docker Works..?</li>
+                                <li class="slide-link" data-slide="166">167. How Docker Works..?</li>
+                                <li class="slide-link" data-slide="167">168. How to Dockerize Node Application -</li>
+                                <li class="slide-link" data-slide="168">169. Dockerfile -</li>
+                                <li class="slide-link" data-slide="169">170. Flow of Dockerfile -</li>
+                                <li class="slide-link" data-slide="170">171. Dockerfile to Docker Image conve...</li>
+                                <li class="slide-link" data-slide="171">172. Dockerfile to Docker Image conve...</li>
+                                <li class="slide-link" data-slide="172">173. Port Mapping -</li>
+                                <li class="slide-link" data-slide="173">174. Port Mapping -</li>
+                                <li class="slide-link" data-slide="174">175. Add Environment Variable in run ...</li>
+                                <li class="slide-link" data-slide="175">176. How to Push custom Image on Dock...</li>
+                                <li class="slide-link" data-slide="176">177. Docker Compose:</li>
+                                <li class="slide-link" data-slide="177">178. Docker Compose:</li>
+                                <li class="slide-link" data-slide="178">179. Docker Networking :</li>
+                                <li class="slide-link" data-slide="179">180. Docker Networking :</li>
+                                <li class="slide-link" data-slide="180">181. Docker Networking :</li>
+                                <li class="slide-link" data-slide="181">182. Docker Volumes :</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-adv-backend-redis">
+                            <div class="level-title">Level 2: Redis Caching</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="182">183. LEVEL 2</li>
+                                <li class="slide-link" data-slide="183">184. Redis Definition</li>
+                                <li class="slide-link" data-slide="184">185. Redis Definition</li>
+                                <li class="slide-link" data-slide="185">186. Slide 43</li>
+                                <li class="slide-link" data-slide="186">187. Slide 44</li>
+                                <li class="slide-link" data-slide="187">188. Slide 45</li>
+                                <li class="slide-link" data-slide="188">189. Slide 46</li>
+                                <li class="slide-link" data-slide="189">190. Slide 47</li>
+                                <li class="slide-link" data-slide="190">191. Slide 48</li>
+                                <li class="slide-link" data-slide="191">192. API Caching:</li>
+                                <li class="slide-link" data-slide="192">193. OTP Storage:</li>
+                                <li class="slide-link" data-slide="193">194. Sessions:</li>
+                                <li class="slide-link" data-slide="194">195. Rate Limiting :</li>
+                                <li class="slide-link" data-slide="195">196. Slide 53</li>
+                                <li class="slide-link" data-slide="196">197. Slide 54</li>
+                                <li class="slide-link" data-slide="197">198. Slide 55</li>
+                                <li class="slide-link" data-slide="198">199. Slide 56</li>
+                                <li class="slide-link" data-slide="199">200. Queues:</li>
+                                <li class="slide-link" data-slide="200">201. Slide 58</li>
+                                <li class="slide-link" data-slide="201">202. Slide 59</li>
+                                <li class="slide-link" data-slide="202">203. BullMQ ek Redis-based queue mana...</li>
+                                <li class="slide-link" data-slide="203">204. BullMQ:</li>
+                                <li class="slide-link" data-slide="204">205. queue.js:</li>
+                                <li class="slide-link" data-slide="205">206. worker.js:</li>
+                                <li class="slide-link" data-slide="206">207. Add job in queue :</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-adv-backend-sysdesign">
+                            <div class="level-title">Level 3: System Design</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="207">208. LEVEL 3</li>
+                                <li class="slide-link" data-slide="208">209. System design</li>
+                                <li class="slide-link" data-slide="209">210. System design</li>
+                                <li class="slide-link" data-slide="210">211. System design</li>
+                                <li class="slide-link" data-slide="211">212. System design</li>
+                                <li class="slide-link" data-slide="212">213. System design</li>
+                                <li class="slide-link" data-slide="213">214. System design</li>
+                                <li class="slide-link" data-slide="214">215. System design</li>
+                                <li class="slide-link" data-slide="215">216. System design</li>
+                                <li class="slide-link" data-slide="216">217. System design</li>
+                                <li class="slide-link" data-slide="217">218. System design</li>
+                                <li class="slide-link" data-slide="218">219. System design</li>
+                                <li class="slide-link" data-slide="219">220. System design</li>
+                                <li class="slide-link" data-slide="220">221. System design</li>
+                                <li class="slide-link" data-slide="221">222. System design</li>
+                                <li class="slide-link" data-slide="222">223. System design</li>
+                                <li class="slide-link" data-slide="223">224. System design</li>
+                                <li class="slide-link" data-slide="224">225. System design</li>
+                                <li class="slide-link" data-slide="225">226. System design</li>
+                                <li class="slide-link" data-slide="226">227. System design</li>
+                                <li class="slide-link" data-slide="227">228. System design</li>
+                                <li class="slide-link" data-slide="228">229. System design</li>
+                                <li class="slide-link" data-slide="229">230. System design</li>
+                                <li class="slide-link" data-slide="230">231. System design</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-adv-backend-ai">
+                            <div class="level-title">Level 4: AI & Large Language Models</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="231">232. Advanced</li>
+                                <li class="slide-link" data-slide="232">233. Part 2</li>
+                                <li class="slide-link" data-slide="233">234. “Pay what you think this course ...</li>
+                                <li class="slide-link" data-slide="234">235. LEVEL</li>
+                                <li class="slide-link" data-slide="235">236. AI  Full Course</li>
+                                <li class="slide-link" data-slide="236">237. AI  Full Course</li>
+                                <li class="slide-link" data-slide="237">238. AI  Full Course</li>
+                                <li class="slide-link" data-slide="238">239. AI  Full Course</li>
+                                <li class="slide-link" data-slide="239">240. AI  Full Course</li>
+                                <li class="slide-link" data-slide="240">241. AI  Full Course</li>
+                                <li class="slide-link" data-slide="241">242. AI  Full Course</li>
+                                <li class="slide-link" data-slide="242">243. AI  Full Course</li>
+                                <li class="slide-link" data-slide="243">244. AI  Full Course</li>
+                                <li class="slide-link" data-slide="244">245. AI  Full Course</li>
+                                <li class="slide-link" data-slide="245">246. AI  Full Course</li>
+                                <li class="slide-link" data-slide="246">247. AI  Full Course</li>
+                                <li class="slide-link" data-slide="247">248. AI  Full Course</li>
+                                <li class="slide-link" data-slide="248">249. AI  Full Course</li>
+                                <li class="slide-link" data-slide="249">250. AI  Full Course</li>
+                                <li class="slide-link" data-slide="250">251. AI  Full Course</li>
+                                <li class="slide-link" data-slide="251">252. AI  Full Course</li>
+                                <li class="slide-link" data-slide="252">253. AI  Full Course</li>
+                                <li class="slide-link" data-slide="253">254. AI  Full Course</li>
+                                <li class="slide-link" data-slide="254">255. AI  Full Course</li>
+                                <li class="slide-link" data-slide="255">256. AI  Full Course</li>
+                                <li class="slide-link" data-slide="256">257. AI  Full Course</li>
+                                <li class="slide-link" data-slide="257">258. AI  Full Course</li>
+                                <li class="slide-link" data-slide="258">259. AI  Full Course</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-adv-backend-cloud">
+                            <div class="level-title">Level 5: Cloud Deployment & CI/CD</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="259">260. LEVEL 5</li>
+                                <li class="slide-link" data-slide="260">261. Cloud Deployment</li>
+                                <li class="slide-link" data-slide="261">262. Cloud Deployment</li>
+                                <li class="slide-link" data-slide="262">263. Cloud Deployment</li>
+                                <li class="slide-link" data-slide="263">264. Cloud Deployment</li>
+                                <li class="slide-link" data-slide="264">265. Cloud Deployment</li>
+                                <li class="slide-link" data-slide="265">266. Cloud Deployment</li>
+                                <li class="slide-link" data-slide="266">267. Cloud Deployment</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VPS Hosting Module -->
+                <div class="accordion-item" id="accordion-vps-hosting">
+                    <button class="accordion-header" onclick="toggleAccordion(6)">
+                        <span class="header-title">VPS Hosting Guide</span>
+                        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="level-group" id="nav-vps-hosting-level-0">
+                            <div class="level-title">MERN Stack VPS Deployment</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="267">268. Intro to VPS Deployment</li>
+                                <li class="slide-link" data-slide="268">269. Architecture Overview</li>
+                                <li class="slide-link" data-slide="269">270. Preparing VPS Environment</li>
+                                <li class="slide-link" data-slide="270">271. Installing Node & Git</li>
+                                <li class="slide-link" data-slide="271">272. Setting Up MongoDB</li>
+                                <li class="slide-link" data-slide="272">273. Deploying Express Backend</li>
+                                <li class="slide-link" data-slide="273">274. PM2 & Startup Configs</li>
+                                <li class="slide-link" data-slide="274">275. Deploying React Frontend</li>
+                                <li class="slide-link" data-slide="275">276. Installing Nginx</li>
+                                <li class="slide-link" data-slide="276">277. Nginx Routing Configs</li>
+                                <li class="slide-link" data-slide="277">278. Domain DNS Mapping</li>
+                                <li class="slide-link" data-slide="278">279. SSL HTTPS Setup</li>
+                                <li class="slide-link" data-slide="279">280. Production CLI Commands</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Next.js Module -->
+                <div class="accordion-item" id="accordion-nextjs">
+                    <button class="accordion-header" onclick="toggleAccordion(7)">
+                        <span class="header-title">Next.js Course</span>
+                        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="level-group" id="nav-nextjs-level0">
+                            <div class="level-title">Level 0: Prerequisites & Intro</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="280">281. WITH PROJECT</li>
+                                <li class="slide-link" data-slide="281">282. Prerequisites for this video</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-nextjs-level1">
+                            <div class="level-title">Level 1: Introduction to Next JS</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="282">283. LEVEL 1</li>
+                                <li class="slide-link" data-slide="283">284. INTRODUCTION TO NEXT JS</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-nextjs-level2">
+                            <div class="level-title">Level 2: App Router</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="284">285. LEVEL 2</li>
+                                <li class="slide-link" data-slide="285">286. App Router</li>
+                                <li class="slide-link" data-slide="286">287. INTRODUCTION TO NEXT JS</li>
+                                <li class="slide-link" data-slide="287">288. App Router</li>
+                                <li class="slide-link" data-slide="288">289. App Router</li>
+                                <li class="slide-link" data-slide="289">290. App Router</li>
+                                <li class="slide-link" data-slide="290">291. App Router</li>
+                                <li class="slide-link" data-slide="291">292. App Router</li>
+                                <li class="slide-link" data-slide="292">293. App Router</li>
+                                <li class="slide-link" data-slide="293">294. App Router</li>
+                                <li class="slide-link" data-slide="294">295. App Router</li>
+                                <li class="slide-link" data-slide="295">296. App Router</li>
+                                <li class="slide-link" data-slide="296">297. App Router</li>
+                                <li class="slide-link" data-slide="297">298. App Router</li>
+                                <li class="slide-link" data-slide="298">299. App Router</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-nextjs-level3">
+                            <div class="level-title">Level 3: Navigation, Image & Font</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="299">300. LEVEL 3</li>
+                                <li class="slide-link" data-slide="300">301. Navigation in Next JS</li>
+                                <li class="slide-link" data-slide="301">302. Navigation , Image & Font in Nex...</li>
+                                <li class="slide-link" data-slide="302">303. Navigation , Image & Font in Nex...</li>
+                                <li class="slide-link" data-slide="303">304. Navigation , Image & Font in Nex...</li>
+                                <li class="slide-link" data-slide="304">305. Image Optimization</li>
+                                <li class="slide-link" data-slide="305">306. Reduces font file size by includ...</li>
+                                <li class="slide-link" data-slide="306">307. Build a simple  Travel Guide web...</li>
+                                <li class="slide-link" data-slide="307">308. Build a simple  Travel Guide web...</li>
+                                <li class="slide-link" data-slide="308">309. Build a simple  Travel Guide web...</li>
+                                <li class="slide-link" data-slide="309">310. Build a simple  Travel Guide web...</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-nextjs-level4">
+                            <div class="level-title">Level 4: TypeScript Course</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="310">311. LEVEL</li>
+                                <li class="slide-link" data-slide="311">312. What is TypeScript ?</li>
+                                <li class="slide-link" data-slide="312">313. Basic Types</li>
+                                <li class="slide-link" data-slide="313">314. Arrays & Tuples</li>
+                                <li class="slide-link" data-slide="314">315. Functions</li>
+                                <li class="slide-link" data-slide="315">316. Type Declaration & Type Inference</li>
+                                <li class="slide-link" data-slide="316">317. Type Aliases</li>
+                                <li class="slide-link" data-slide="317">318. Interfaces</li>
+                                <li class="slide-link" data-slide="318">319. Difference b/w Type & Interface</li>
+                                <li class="slide-link" data-slide="319">320. Union & Intersection</li>
+                                <li class="slide-link" data-slide="320">321. Generics</li>
+                                <li class="slide-link" data-slide="321">322. Global Declaration</li>
+                                <li class="slide-link" data-slide="322">323. React with TS</li>
+                                <li class="slide-link" data-slide="323">324. Typescript Tutorial</li>
+                                <li class="slide-link" data-slide="324">325. Typescript Tutorial</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-nextjs-level5">
+                            <div class="level-title">Level 5: API Routes</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="325">326. LEVEL 5</li>
+                                <li class="slide-link" data-slide="326">327. API Routes in Next JS</li>
+                                <li class="slide-link" data-slide="327">328. API Routes in Next JS</li>
+                                <li class="slide-link" data-slide="328">329. API Routes in Next JS</li>
+                                <li class="slide-link" data-slide="329">330. API Routes in Next JS</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-nextjs-level6">
+                            <div class="level-title">Level 6: Data Fetching</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="330">331. LEVEL 6</li>
+                                <li class="slide-link" data-slide="331">332. Data Fetching in NEXT JS</li>
+                                <li class="slide-link" data-slide="332">333. Data Fetching in NEXT JS</li>
+                                <li class="slide-link" data-slide="333">334. Data Fetching in NEXT JS</li>
+                                <li class="slide-link" data-slide="334">335. Data Fetching in NEXT JS</li>
+                                <li class="slide-link" data-slide="335">336. Data Fetching in NEXT JS</li>
+                                <li class="slide-link" data-slide="336">337. Data Fetching in NEXT JS</li>
+                                <li class="slide-link" data-slide="337">338. Data Fetching in NEXT JS</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-nextjs-level7">
+                            <div class="level-title">Level 7: MongoDB Integration</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="338">339. Build a Full Stack Next JS App i...</li>
+                                <li class="slide-link" data-slide="339">340. MongoDB Atlas</li>
+                                <li class="slide-link" data-slide="340">341. MongoDB Atlas</li>
+                                <li class="slide-link" data-slide="341">342. MongoDB Atlas</li>
+                                <li class="slide-link" data-slide="342">343. MongoDB Atlas</li>
+                                <li class="slide-link" data-slide="343">344. MongoDB Atlas</li>
+                                <li class="slide-link" data-slide="344">345. How to Connect MongoDb in Next JS</li>
+                                <li class="slide-link" data-slide="345">346. How to Connect MongoDb in Next JS</li>
+                                <li class="slide-link" data-slide="346">347. How to Connect MongoDb in Next JS</li>
+                                <li class="slide-link" data-slide="347">348. How to Connect MongoDb in Next JS</li>
+                                <li class="slide-link" data-slide="348">349. How to Connect MongoDb in Next JS</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-nextjs-level8">
+                            <div class="level-title">Level 8: Next Auth Security</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="349">350. Authentication Using Next Auth</li>
+                                <li class="slide-link" data-slide="350">351. Authentication Using Next Auth</li>
+                                <li class="slide-link" data-slide="351">352. Authentication Using Next Auth</li>
+                                <li class="slide-link" data-slide="352">353. Authentication Using Next Auth</li>
+                                <li class="slide-link" data-slide="353">354. Authentication Using Next Auth</li>
+                                <li class="slide-link" data-slide="354">355. What we write in authOptions ?</li>
+                                <li class="slide-link" data-slide="355">356. What we write in authOptions ?</li>
+                                <li class="slide-link" data-slide="356">357. What we write in authOptions ?</li>
+                                <li class="slide-link" data-slide="357">358. 1. Providers option</li>
+                                <li class="slide-link" data-slide="358">359. 1. Providers option</li>
+                            </ul>
+                        </div>
+                        <div class="level-group" id="nav-nextjs-level9">
+                            <div class="level-title">Level 9: Full Stack Project</div>
+                            <ul class="slide-list">
+                                <li class="slide-link" data-slide="359">360. Practice Project 2</li>
+                                <li class="slide-link" data-slide="360">361. Practice Project 2</li>
+                                <li class="slide-link" data-slide="361">362. Practice Project 2</li>
+                                <li class="slide-link" data-slide="362">363. Practice Project 2</li>
+                                <li class="slide-link" data-slide="363">364. Practice Project 2</li>
+                                <li class="slide-link" data-slide="364">365. Practice Project 2</li>
+                                <li class="slide-link" data-slide="365">366. Practice Project 2</li>
+                                <li class="slide-link" data-slide="366">367. Practice Project 2</li>
+                                <li class="slide-link" data-slide="367">368. Practice Project 2</li>
+                                <li class="slide-link" data-slide="368">369. Practice Project 2</li>
+                            </ul>
+                        </div>
+
+                    </div>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Presentation Sandbox Panel -->
+        <main class="content-area">
+            <!-- Slide Viewer Card -->
+            <div class="slide-card glass" id="slide-card">
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progress-bar" style="width: 3.84%;"></div>
+                </div>
+                
+                <!-- Dynamic Slide Contents with Collapsible Notes -->
+                <div style="display: flex; gap: 1rem; width: 100%; align-items: stretch; flex-wrap: wrap;">
+                    <div id="slides-container" style="flex: 1; min-width: 280px;">
+                        <!-- Slides will be rendered here. In Print view, all slides will show simultaneously -->
+                    </div>
+                    <div id="slide-notes-pane" style="width: 250px; display: none; flex-direction: column; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); padding: 1rem; border-radius: 8px; box-sizing: border-box;" class="no-print">
+                        <div style="font-size: 0.85rem; font-weight: bold; color: var(--accent-blue); margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                            <span>📝 Revision Notes</span>
+                            <button onclick="toggleSlideNotes()" style="background:none; border:none; color:#ef4444; font-size:0.75rem; cursor:pointer;">Close</button>
+                        </div>
+                        <textarea id="slide-note-textarea" oninput="saveSlideNote()" placeholder="Write revision notes for this slide..." style="width: 100%; flex: 1; min-height: 150px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 0.5rem; color: white; font-size: 0.8rem; box-sizing: border-box; resize: none;"></textarea>
+                    </div>
+                </div>
+
+                <!-- Slide Navigation Controls -->
+                <div class="slide-controls no-print" style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; justify-content: space-between;">
+                    <button class="btn btn-secondary" id="btn-prev" onclick="prevSlide()" disabled>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                        Peechhe (Prev)
+                    </button>
+                    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" onclick="toggleSlideNotes()" style="padding: 0.5rem 0.75rem; font-size: 0.8rem; border-color: rgba(255,255,255,0.15);">
+                            📝 Notes
+                        </button>
+                        <label class="slide-completion-toggle" id="slide-completion-label">
+                            <input type="checkbox" id="slide-completed-checkbox" onchange="toggleSlideCompletion()">
+                            <span>Pura Kiya (Completed)</span>
+                        </label>
+                    </div>
+                    <span class="slide-counter" id="slide-counter">Slide 1 of 26</span>
+                    <button class="btn btn-primary" id="btn-next" onclick="nextSlide()">
+                        Aage (Next)
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Code Sandbox Component (Visible on slides that contain code) -->
+            <div class="sandbox-container glass no-print" id="sandbox">
+                <div class="sandbox-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                    <div class="sandbox-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                        <span>Interactive Sandbox</span>
+                    </div>
+                    <div style="display: flex; gap: 0.4rem; align-items: center;">
+                        <button class="btn btn-secondary" onclick="saveCodeSnippet()" style="padding: 0.35rem 0.6rem; font-size: 0.75rem; border-color: rgba(255,255,255,0.15);">
+                            💾 Save
+                        </button>
+                        <button class="btn btn-secondary" onclick="toggleSnippetsDrawer()" style="padding: 0.35rem 0.6rem; font-size: 0.75rem; border-color: rgba(255,255,255,0.15);">
+                            📂 Library
+                        </button>
+                        <button class="btn btn-primary" onclick="openAIMentorModal()" style="padding: 0.35rem 0.6rem; font-size: 0.75rem; background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%); border: none;">
+                            💬 AI Mentor
+                        </button>
+                        <button class="btn btn-secondary" onclick="downloadSandboxCode()" style="padding: 0.35rem 0.6rem; font-size: 0.75rem; border-color: rgba(255,255,255,0.15);" title="Download current code as HTML file">
+                            📥 Download
+                        </button>
+                        <button class="btn btn-success" onclick="runSandboxCode()" style="padding: 0.35rem 0.6rem; font-size: 0.75rem;">
+                            Run Code
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="sandbox-body">
+                    <div class="editor-pane">
+                        <div class="editor-label">HTML Editor</div>
+                        <textarea id="sandbox-editor" spellcheck="false" placeholder="Write your HTML here..."></textarea>
+                    </div>
+                    <div class="preview-pane">
+                        <div class="preview-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem;">
+                            <button class="btn-tab active" id="tab-btn-preview" onclick="switchPreviewTab('preview')" style="background: none; border: none; color: white; font-size: 0.8rem; font-weight: 700; cursor: pointer; padding: 0.25rem 0.5rem; border-bottom: 2px solid var(--accent-blue);">Live Output</button>
+                            <button class="btn-tab" id="tab-btn-console" onclick="switchPreviewTab('console')" style="background: none; border: none; color: #cbd5e1; font-size: 0.8rem; cursor: pointer; padding: 0.25rem 0.5rem;">📟 Console Logs</button>
+                            <button class="btn-tab" id="tab-btn-db" onclick="switchPreviewTab('db')" style="background: none; border: none; color: #cbd5e1; font-size: 0.8rem; cursor: pointer; padding: 0.25rem 0.5rem;">🗄️ Database Monitor</button>
+                        </div>
+                        
+                        <!-- Tab Content 1: Live Frame -->
+                        <div class="tab-panel" id="panel-preview">
+                            <iframe id="sandbox-preview" sandbox="allow-scripts"></iframe>
+                        </div>
+                        
+                        <!-- Tab Content 2: Console Drawer -->
+                        <div class="tab-panel" id="panel-console" style="display: none;">
+                            <div class="console-drawer-container" style="margin-top: 0;">
+                                <div class="console-drawer-header">
+                                    <span>📟 Live Console Drawer</span>
+                                    <button class="console-clear-btn" onclick="clearConsoleLog()">Clear Log</button>
+                                </div>
+                                <div class="console-drawer-content" id="console-drawer-log" style="height: 250px;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Tab Content 3: Database Monitor Pane -->
+                        <div class="tab-panel" id="panel-db" style="display: none;">
+                            <div class="db-monitor-container" style="background: #090d16; border: 1px solid #334155; border-radius: 8px; padding: 1rem; font-family: monospace; min-height: 250px; overflow-y: auto; color: #10b981; text-align: left;">
+                                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #334155; padding-bottom: 0.5rem; margin-bottom: 0.75rem;">
+                                    <span style="font-weight: 700; color: #38bdf8;">🗄️ codewith_ai Database GUI</span>
+                                    <span id="db-type-badge" style="background: rgba(56,189,248,0.15); color: #38bdf8; font-size: 0.7rem; padding: 0.15rem 0.4rem; border-radius: 4px;">No Active Connection</span>
+                                </div>
+                                <div id="db-gui-content" style="font-size: 0.85rem; color: #94a3b8;">
+                                    Run code containing database instructions to monitor active collections or key-value states.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Quiz Modal Overlay -->
+    <div class="modal-overlay" id="quiz-modal">
+        <div class="modal-card">
+            <button class="modal-close-btn" onclick="closeQuizModal()">&times;</button>
+            <div id="quiz-modal-content">
+                <!-- Dynamic quiz question & options will go here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Certificate Modal Overlay -->
+    <div class="modal-overlay" id="certificate-modal">
+        <div class="modal-card" style="max-width: 600px;">
+            <button class="modal-close-btn" onclick="closeCertificateModal()">&times;</button>
+            <div class="certificate-container" id="certificate-container-to-print">
+                <div class="cert-title">codewith_ai</div>
+                <div class="cert-subtitle">Certificate of Completion</div>
+                <p class="cert-desc" style="margin-top: 1rem;">This is proudly presented to</p>
+                <div class="cert-name" id="cert-user-name">Your Name</div>
+                <p class="cert-desc">for successfully completing the course of</p>
+                <div class="cert-title" id="cert-course-name" style="color: #ffffff; font-size: 1.3rem; letter-spacing: 1px; margin-bottom: 2rem;">HTML Course</div>
+                <div class="cert-footer">
+                    <span class="cert-signature" style="font-style: italic;">codewith_ai Team</span>
+                    <div class="cert-stamp">Passed</div>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 1.5rem;">
+                <button class="modal-btn" onclick="printCertificate()">Print & Download Certificate</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Login Modal Overlay -->
+    <div class="modal-overlay" id="admin-login-modal">
+        <div class="modal-card" style="max-width: 400px; text-align: center;">
+            <button class="modal-close-btn" onclick="closeAdminLoginModal()">&times;</button>
+            <h3 style="font-family: var(--font-heading); color: var(--accent-blue); margin-bottom: 0.5rem; font-size: 1.4rem;">🔑 Super Owner Login</h3>
+            <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 1.5rem;">Enter credential codes to open the Course compiler dashboard.</p>
+            <div style="text-align: left; margin-bottom: 1rem;">
+                <label style="font-size: 0.8rem; color: #cbd5e1; display: block; margin-bottom: 0.25rem;">Username</label>
+                <input type="text" id="admin-username" style="width: 100%; padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; box-sizing: border-box;">
+            </div>
+            <div style="text-align: left; margin-bottom: 1.5rem;">
+                <label style="font-size: 0.8rem; color: #cbd5e1; display: block; margin-bottom: 0.25rem;">Password</label>
+                <input type="password" id="admin-password" style="width: 100%; padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; box-sizing: border-box;">
+            </div>
+            <div id="login-error-msg" style="color: #ef4444; font-size: 0.8rem; margin-bottom: 1rem; display: none;">Wrong username or password. Try again!</div>
+            <button class="modal-btn" style="width: 100%;" onclick="verifyAdminLogin()">Login</button>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard Modal Overlay -->
+    <div class="modal-overlay" id="admin-dashboard-modal">
+        <div class="modal-card" style="max-width: 800px; width: 90%; max-height: 85vh; overflow-y: auto; text-align: left;">
+            <button class="modal-close-btn" onclick="closeAdminDashboardModal()">&times;</button>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.75rem; margin-bottom: 1.5rem;">
+                <h3 style="font-family: var(--font-heading); color: var(--accent-blue); font-size: 1.5rem; margin: 0;">👑 Admin Control Center</h3>
+                <button class="console-clear-btn" onclick="adminLogout()" style="padding: 0.25rem 0.75rem;">Logout</button>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <!-- Left: File upload parser -->
+                <div style="border-right: 1px solid rgba(255,255,255,0.1); padding-right: 2rem;">
+                    <h4 style="color: #ffffff; margin-top: 0; margin-bottom: 1rem; font-family: var(--font-heading);">📚 Add PDF Course</h4>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="font-size: 0.8rem; color: #cbd5e1; display: block; margin-bottom: 0.25rem;">Course Title</label>
+                        <input type="text" id="upload-course-title" placeholder="e.g. Next Gen Python" style="width: 100%; padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; box-sizing: border-box;">
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="font-size: 0.8rem; color: #cbd5e1; display: block; margin-bottom: 0.25rem;">Unique Course ID</label>
+                        <input type="text" id="upload-course-id" placeholder="e.g. python-next" style="width: 100%; padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; box-sizing: border-box;">
+                    </div>
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="font-size: 0.8rem; color: #cbd5e1; display: block; margin-bottom: 0.25rem;">Select PDF Document</label>
+                        <input type="file" id="upload-pdf-file" accept=".pdf" style="width: 100%; color: #cbd5e1; font-size: 0.8rem;">
+                    </div>
+                    <button class="modal-btn" style="width: 100%;" id="btn-parse-pdf" onclick="startPDFBrowserParsing()">Parse & Compile PDF</button>
+                    
+                    <div id="admin-upload-status" style="margin-top: 1rem; padding: 0.75rem; border-radius: 6px; background: rgba(0,0,0,0.2); border: 1px dashed rgba(255,255,255,0.1); font-size: 0.75rem; color: #94a3b8; line-height: 1.4; display: none;"></div>
+                </div>
+                
+                <!-- Right: Course Manager lists -->
+                <div>
+                    <h4 style="color: #ffffff; margin-top: 0; margin-bottom: 1rem; font-family: var(--font-heading);">🛠️ Course Database Manager</h4>
+                    <div id="admin-courses-list" style="max-height: 320px; overflow-y: auto;">
+                        <!-- Courses list will dynamically go here -->
+                    </div>
+                    
+                    <!-- Code exporter block -->
+                    <div style="margin-top: 1.5rem; padding: 1rem; border-radius: 8px; background: rgba(56,189,248,0.05); border: 1px solid rgba(56,189,248,0.2);">
+                        <h5 style="color: #38bdf8; margin: 0 0 0.5rem 0;">💾 Export Updated Code</h5>
+                        <p style="font-size: 0.75rem; color: #94a3b8; margin: 0 0 1rem 0;">Click below to download or copy the dynamically updated javascript file contents to make custom additions permanent.</p>
+                        <button class="modal-btn" style="background: #0284c7; font-size: 0.75rem; padding: 0.4rem 1rem;" onclick="copyUpdatedAppJs()">Copy Updated app.js</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Mentor Modal Overlay -->
+    <div class="modal-overlay" id="ai-mentor-modal">
+        <div class="modal-card" style="max-width: 500px; width: 90%;">
+            <button class="modal-close-btn" onclick="closeAIMentorModal()">&times;</button>
+            <h3 style="font-family: var(--font-heading); color: var(--accent-blue); margin-bottom: 1rem; font-size: 1.35rem; display: flex; align-items: center; gap: 0.5rem;">
+                🤖 AI Coding Mentor
+            </h3>
+            
+            <div id="ai-chat-feed" style="height: 250px; overflow-y: auto; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; font-size: 0.85rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                <!-- Chat contents go here -->
+            </div>
+            
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                <button class="modal-btn" style="background: rgba(168,85,247,0.2); border: 1px solid #c084fc; color: #c084fc; font-size: 0.8rem; padding: 0.4rem 1rem;" onclick="aiExplainCode()">Explain My Code</button>
+                <button class="modal-btn" style="font-size: 0.8rem; padding: 0.4rem 1rem;" onclick="aiGetHint()">Get Hint</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Snippets Library Modal Overlay -->
+    <div class="modal-overlay" id="snippets-library-modal">
+        <div class="modal-card" style="max-width: 450px; width: 90%;">
+            <button class="modal-close-btn" onclick="closeSnippetsDrawer()">&times;</button>
+            <h3 style="font-family: var(--font-heading); color: var(--accent-blue); margin-bottom: 0.5rem; font-size: 1.35rem;">📂 Code Library</h3>
+            <p style="color: #94a3b8; font-size: 0.8rem; margin-bottom: 1.5rem;">Your saved practice code configurations stored locally in the browser.</p>
+            
+            <div id="snippets-list-container" style="max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+                <!-- Saved snippets list will go here -->
+            </div>
+        </div>
+    <!-- Keyboard Shortcuts Helper Modal -->
+    <div class="modal-overlay" id="shortcuts-modal">
+        <div class="modal-card" style="max-width: 400px; width: 90%;">
+            <button class="modal-close-btn" onclick="toggleShortcutsModal()">&times;</button>
+            <h3 style="font-family: var(--font-heading); color: var(--accent-blue); margin-bottom: 0.5rem; font-size: 1.25rem;">⌨️ Keyboard Shortcuts</h3>
+            <p style="color: #94a3b8; font-size: 0.75rem; margin-bottom: 1.5rem;">Use these quick hotkeys to learn and write code faster!</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.85rem; color: #ffffff;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem;">
+                    <span>Next Slide</span>
+                    <span style="background: rgba(255,255,255,0.1); padding: 0.15rem 0.4rem; border-radius: 4px; font-family: monospace;">Right Arrow</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem;">
+                    <span>Previous Slide</span>
+                    <span style="background: rgba(255,255,255,0.1); padding: 0.15rem 0.4rem; border-radius: 4px; font-family: monospace;">Left Arrow</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem;">
+                    <span>Run Sandbox Code</span>
+                    <span style="background: rgba(255,255,255,0.1); padding: 0.15rem 0.4rem; border-radius: 4px; font-family: monospace;">Ctrl + Enter</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem;">
+                    <span>Save Code Snippet</span>
+                    <span style="background: rgba(255,255,255,0.1); padding: 0.15rem 0.4rem; border-radius: 4px; font-family: monospace;">Ctrl + S</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem;">
+                    <span>Toggle Cheat Sheet</span>
+                    <span style="background: rgba(255,255,255,0.1); padding: 0.15rem 0.4rem; border-radius: 4px; font-family: monospace;">?</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem;">
+                    <span>Close All Modals</span>
+                    <span style="background: rgba(255,255,255,0.1); padding: 0.15rem 0.4rem; border-radius: 4px; font-family: monospace;">Esc</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>
+        // Configure PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    </script>
+    <script src="app.js?v=21"></script>
+</body>
+</html>
