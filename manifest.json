@@ -1,0 +1,17 @@
+{
+  "name": "codewith_ai Course Hub",
+  "short_name": "codewith_ai",
+  "description": "Premium Web Dev Course Hub with AI Mentor & Sandbox",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#090514",
+  "theme_color": "#a855f7",
+  "icons": [
+    {
+      "src": "icon.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
