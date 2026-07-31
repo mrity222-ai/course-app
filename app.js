@@ -10773,6 +10773,12 @@ window.openAdminModal = function() {
         document.getElementById('admin-dashboard-modal').classList.add('active');
         renderAdminCoursesList();
         if (typeof renderAdminStudentsList === 'function') renderAdminStudentsList();
+        
+        // Populate Sarvam key if saved
+        const keyInput = document.getElementById('admin-sarvam-key');
+        if (keyInput) {
+            keyInput.value = localStorage.getItem('codewith_ai_sarvam_key') || '';
+        }
     } else {
         document.getElementById('admin-login-modal').classList.add('active');
     }
@@ -12241,57 +12247,133 @@ window.playAILectureVideo = function() {
         
     // Break script into manageable subtitle slides
     const subtitleSentences = cleanText.split(/[.।]/).map(s => s.trim()).filter(s => s.length > 2);
-    let activeSentenceIndex = 0;
     
     if (subtitleBox) {
         subtitleBox.innerText = subtitleSentences[0] || "Hi, I am your codewith_ai avatar tutor!";
     }
-    
-    // Start Audio Lecturing using browser WebSpeech SpeechSynthesis
-    aiSpeechUtterance = new SpeechSynthesisUtterance(cleanText);
-    
-    // Read user selected voice accent from dropdown
+
     const voiceSelect = document.getElementById('ai-voice-select');
     const selectedVoiceName = voiceSelect ? voiceSelect.value : '';
-    const voices = window.speechSynthesis.getVoices();
-    const chosenVoice = voices.find(v => v.name === selectedVoiceName);
-    
-    if (chosenVoice) {
-        aiSpeechUtterance.voice = chosenVoice;
-    } else {
-        const indVoice = voices.find(v => v.lang.includes('IN') || v.lang.includes('hi'));
-        if (indVoice) aiSpeechUtterance.voice = indVoice;
-    }
-    
-    // Human-like speech optimization settings
-    aiSpeechUtterance.rate = 0.88;  // Slower pacing for better understanding
-    aiSpeechUtterance.pitch = 1.02; // Warm, approachable tone
-    
-    aiSpeechUtterance.onboundary = function(event) {
-        if (event.name === 'sentence') {
-            // Find current text boundary index to auto-update subtitle frame
-            const charIndex = event.charIndex;
-            const textRemaining = cleanText.substring(charIndex);
-            const nextPeriod = textRemaining.indexOf('.');
-            const currentSubText = nextPeriod !== -1 ? textRemaining.substring(0, nextPeriod).trim() : textRemaining.trim();
-            if (subtitleBox && currentSubText) {
-                subtitleBox.innerText = currentSubText;
-            }
+
+    if (selectedVoiceName === 'sarvam_shubh') {
+        let apiKey = localStorage.getItem('codewith_ai_sarvam_key');
+        if (!apiKey) {
+            apiKey = 'sk_aa41zj3o_LzmhKFdzcLWoEvOrSWMIJJNR';
+            localStorage.setItem('codewith_ai_sarvam_key', apiKey);
         }
-    };
-    
-    aiSpeechUtterance.onend = function() {
-        stopAILectureVideo();
-    };
-    
-    aiSpeechUtterance.onerror = function() {
-        stopAILectureVideo();
-    };
-    
-    window.speechSynthesis.speak(aiSpeechUtterance);
-    
-    // Start Canvas Render Animation loop
-    startAIAvatarRender(canvas);
+
+        // Play premium Sarvam AI Shubh voice
+        aiVideoPlaying = true;
+        playBtn.disabled = true;
+        stopBtn.disabled = false;
+        playBtn.innerText = "🗣️ Sarvam Shubh...";
+
+        fetch("https://api.sarvam.ai/text-to-speech", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "api-subscription-key": apiKey
+            },
+            body: JSON.stringify({
+                inputs: [cleanText],
+                target_language_code: "hi-IN",
+                speaker: "shubh",
+                pitch: 0,
+                pace: 0.95,
+                loudness: 1.5,
+                speech_profile: "teaching"
+            })
+        })
+        .then(res => {
+            if (!res.ok) throw new Error("HTTP error " + res.status);
+            return res.json();
+        })
+        .then(data => {
+            if (!aiVideoPlaying) return; // stopped while loading
+            if (data.audio_content) {
+                window.activeSarvamAudio = new Audio("data:audio/wav;base64," + data.audio_content);
+                
+                window.activeSarvamAudio.onplay = function() {
+                    startAIAvatarRender(canvas);
+                    
+                    // Animate subtitles dynamically synced to audio duration
+                    let currentSentence = 0;
+                    const durationPerSentence = (window.activeSarvamAudio.duration * 1000) / Math.max(1, subtitleSentences.length);
+                    
+                    window.subtitleUpdateInterval = setInterval(() => {
+                        currentSentence++;
+                        if (currentSentence < subtitleSentences.length) {
+                            if (subtitleBox) subtitleBox.innerText = subtitleSentences[currentSentence];
+                        } else {
+                            clearInterval(window.subtitleUpdateInterval);
+                        }
+                    }, durationPerSentence);
+                };
+                
+                window.activeSarvamAudio.onended = function() {
+                    stopAILectureVideo();
+                };
+                
+                window.activeSarvamAudio.onerror = function() {
+                    stopAILectureVideo();
+                };
+                
+                window.activeSarvamAudio.play();
+            } else {
+                alert("Sarvam AI: Failed to generate audio. Check key or rate limit!");
+                stopAILectureVideo();
+            }
+        })
+        .catch(err => {
+            alert("Sarvam AI Error: " + err.message);
+            stopAILectureVideo();
+        });
+
+    } else {
+        // Play local browser voice
+        aiVideoPlaying = true;
+        playBtn.disabled = true;
+        stopBtn.disabled = false;
+        playBtn.innerText = "🗣️ Lecturing...";
+
+        aiSpeechUtterance = new SpeechSynthesisUtterance(cleanText);
+        
+        const voices = window.speechSynthesis.getVoices();
+        const chosenVoice = voices.find(v => v.name === selectedVoiceName);
+        
+        if (chosenVoice) {
+            aiSpeechUtterance.voice = chosenVoice;
+        } else {
+            const indVoice = voices.find(v => v.lang.includes('IN') || v.lang.includes('hi'));
+            if (indVoice) aiSpeechUtterance.voice = indVoice;
+        }
+        
+        aiSpeechUtterance.rate = 0.88;
+        aiSpeechUtterance.pitch = 1.02;
+        
+        aiSpeechUtterance.onboundary = function(event) {
+            if (event.name === 'sentence') {
+                const charIndex = event.charIndex;
+                const textRemaining = cleanText.substring(charIndex);
+                const nextPeriod = textRemaining.indexOf('.');
+                const currentSubText = nextPeriod !== -1 ? textRemaining.substring(0, nextPeriod).trim() : textRemaining.trim();
+                if (subtitleBox && currentSubText) {
+                    subtitleBox.innerText = currentSubText;
+                }
+            }
+        };
+        
+        aiSpeechUtterance.onend = function() {
+            stopAILectureVideo();
+        };
+        
+        aiSpeechUtterance.onerror = function() {
+            stopAILectureVideo();
+        };
+        
+        window.speechSynthesis.speak(aiSpeechUtterance);
+        startAIAvatarRender(canvas);
+    }
 };
 
 window.stopAILectureVideo = function() {
@@ -12309,7 +12391,7 @@ window.stopAILectureVideo = function() {
     if (stopBtn) stopBtn.disabled = true;
     if (subtitleBox) subtitleBox.innerText = "Click Play to begin AI lecture...";
     
-    // Halt TTS Audio Engine
+    // Stop local voice
     if (window.speechSynthesis) {
         window.speechSynthesis.cancel();
     }
@@ -12483,11 +12565,13 @@ window.populateAIVoices = function() {
     // Clear old options
     select.innerHTML = '';
     
+    // Prepend premium Sarvam AI Shubh voice at the top!
+    const sarvamOpt = document.createElement('option');
+    sarvamOpt.value = 'sarvam_shubh';
+    sarvamOpt.innerText = '✨ Sarvam AI - Shubh (Premium Voice)';
+    select.appendChild(sarvamOpt);
+    
     const voices = window.speechSynthesis.getVoices();
-    if (voices.length === 0) {
-        select.innerHTML = '<option value="">Default System Voice</option>';
-        return;
-    }
     
     // Sort and prioritize Hindi and Indian English natural voices
     const sortedVoices = [...voices].sort((a, b) => {
@@ -12498,7 +12582,6 @@ window.populateAIVoices = function() {
         return a.name.localeCompare(b.name);
     });
     
-    let addedCount = 0;
     sortedVoices.forEach(v => {
         if (v.lang.includes('en') || v.lang.includes('hi')) {
             const opt = document.createElement('option');
@@ -12510,23 +12593,18 @@ window.populateAIVoices = function() {
                 .replace('Online', '🌐');
             opt.innerText = `${displayName} (${v.lang})`;
             select.appendChild(opt);
-            addedCount++;
         }
     });
     
-    if (addedCount === 0) {
-        select.innerHTML = '<option value="">Default System Voice</option>';
-    }
-    
-    // Try to auto-select Google Hindi, en-IN, or MS Natural en-IN by default
-    const defaultVoice = sortedVoices.find(v => 
-        (v.name.includes('Google') && v.lang.includes('hi')) || 
-        (v.name.includes('Google') && v.lang.includes('IN')) ||
-        (v.name.includes('Natural') && v.lang.includes('IN'))
-    );
-    if (defaultVoice) {
-        select.value = defaultVoice.name;
-    }
+    // Default select to Sarvam AI Shubh
+    select.value = 'sarvam_shubh';
+};
+
+// Save Sarvam AI Key from Admin Control Panel
+window.saveSarvamKey = function() {
+    const key = document.getElementById('admin-sarvam-key').value.trim();
+    localStorage.setItem('codewith_ai_sarvam_key', key);
+    alert("✓ Sarvam AI Subscription Key safely saved!");
 };
 
 // Listen to browser voice load events dynamically
