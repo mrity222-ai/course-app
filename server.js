@@ -96,6 +96,27 @@ async function runSchemaSQL() {
             }
             console.log("✓ MySQL database tables verified/created.");
 
+            // Dynamically alter existing users table if columns are missing
+            const [columns] = await dbPool.query("SHOW COLUMNS FROM users");
+            const colNames = columns.map(c => c.Field.toLowerCase());
+            
+            if (!colNames.includes('email')) {
+                await dbPool.query("ALTER TABLE users ADD COLUMN email VARCHAR(100)");
+                console.log("🔧 Added column: email to users table.");
+            }
+            if (!colNames.includes('fullname')) {
+                await dbPool.query("ALTER TABLE users ADD COLUMN fullname VARCHAR(100)");
+                console.log("🔧 Added column: fullname to users table.");
+            }
+            if (!colNames.includes('mobile')) {
+                await dbPool.query("ALTER TABLE users ADD COLUMN mobile VARCHAR(20)");
+                console.log("🔧 Added column: mobile to users table.");
+            }
+            if (!colNames.includes('year')) {
+                await dbPool.query("ALTER TABLE users ADD COLUMN year VARCHAR(20)");
+                console.log("🔧 Added column: year to users table.");
+            }
+
             // Seed default admin user if not exists
             const [adminRows] = await dbPool.query("SELECT * FROM users WHERE username = 'admin'");
             if (adminRows.length === 0) {
@@ -119,9 +140,13 @@ const DB = {
             const [rows] = await dbPool.query("SELECT * FROM users WHERE username = ?", [username]);
             if (rows.length === 0) return null;
             const r = rows[0];
-             return {
+            return {
                 username: r.username,
                 password: r.password,
+                email: r.email || '',
+                fullname: r.fullname || '',
+                mobile: r.mobile || '',
+                year: r.year || '',
                 unlockedSlides: r.unlocked_slides,
                 completedSlides: JSON.parse(r.completed_slides || '[]'),
                 slideNotes: JSON.parse(r.slide_notes || '{}'),
@@ -148,10 +173,14 @@ const DB = {
             const unlockedModules = JSON.stringify(userObj.unlockedModules || {});
 
             await dbPool.query(
-                `INSERT INTO users (username, password, unlocked_slides, completed_slides, slide_notes, time_logs, alerts, tasks, unlocked_modules, unlock_requested, role)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `INSERT INTO users (username, password, email, fullname, mobile, year, unlocked_slides, completed_slides, slide_notes, time_logs, alerts, tasks, unlocked_modules, unlock_requested, role)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                  ON DUPLICATE KEY UPDATE 
                  password = VALUES(password),
+                 email = VALUES(email),
+                 fullname = VALUES(fullname),
+                 mobile = VALUES(mobile),
+                 year = VALUES(year),
                  unlocked_slides = VALUES(unlocked_slides),
                  completed_slides = VALUES(completed_slides),
                  slide_notes = VALUES(slide_notes),
@@ -164,6 +193,10 @@ const DB = {
                 [
                     userObj.username,
                     userObj.password,
+                    userObj.email || '',
+                    userObj.fullname || '',
+                    userObj.mobile || '',
+                    userObj.year || '',
                     userObj.unlockedSlides || 0,
                     completed,
                     notes,
@@ -180,6 +213,10 @@ const DB = {
             db.users[userObj.username] = {
                 username: userObj.username,
                 password: userObj.password,
+                email: userObj.email || '',
+                fullname: userObj.fullname || '',
+                mobile: userObj.mobile || '',
+                year: userObj.year || '',
                 unlockedSlides: userObj.unlockedSlides || 0,
                 completedSlides: userObj.completedSlides || [],
                 slideNotes: userObj.slideNotes || {},
@@ -196,13 +233,18 @@ const DB = {
 
     async getAllStudents() {
         if (isMySQL) {
-            const [rows] = await dbPool.query("SELECT username, unlocked_slides, completed_slides, time_logs, unlocked_modules, role FROM users WHERE role = 'student'");
+            const [rows] = await dbPool.query("SELECT username, email, fullname, mobile, year, unlocked_slides, completed_slides, time_logs, unlocked_modules, unlock_requested, role FROM users WHERE role = 'student'");
             return rows.map(r => ({
                 username: r.username,
+                email: r.email || '',
+                fullname: r.fullname || '',
+                mobile: r.mobile || '',
+                year: r.year || '',
                 unlockedSlides: r.unlocked_slides,
                 completedSlides: JSON.parse(r.completed_slides || '[]'),
                 timeLogs: JSON.parse(r.time_logs || '[]'),
-                unlockedModules: JSON.parse(r.unlocked_modules || '{}')
+                unlockedModules: JSON.parse(r.unlocked_modules || '{}'),
+                unlockRequested: r.unlock_requested === 1
             }));
         } else {
             const db = readJSONDb();
@@ -210,10 +252,15 @@ const DB = {
                 .filter(u => u.role !== 'admin')
                 .map(u => ({
                     username: u.username,
+                    email: u.email || '',
+                    fullname: u.fullname || '',
+                    mobile: u.mobile || '',
+                    year: u.year || '',
                     unlockedSlides: u.unlockedSlides,
                     completedSlides: u.completedSlides,
                     timeLogs: u.timeLogs,
-                    unlockedModules: u.unlockedModules || {}
+                    unlockedModules: u.unlockedModules || {},
+                    unlockRequested: !!u.unlockRequested
                 }));
         }
     },
@@ -448,7 +495,7 @@ app.get('/', (req, res) => {
 // Auth Endpoints
 app.post('/api/auth/register', async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { username, password, email, fullname, mobile, year } = req.body;
         if (!username || !password) {
             return res.status(400).json({ error: "Username and password required!" });
         }
@@ -463,7 +510,11 @@ app.post('/api/auth/register', async (req, res) => {
 
         const newUser = {
             username,
-            password, // Stored directly or hash. Keep clean as previous localStorage passwords
+            password,
+            email: email || '',
+            fullname: fullname || '',
+            mobile: mobile || '',
+            year: year || '',
             unlockedSlides: 0,
             completedSlides: [],
             slideNotes: {},
@@ -511,7 +562,14 @@ app.get('/api/progress/get', async (req, res) => {
             completedSlides: userObj.completedSlides,
             timeLogs: userObj.timeLogs,
             alerts: userObj.alerts,
-            tasks: userObj.tasks
+            tasks: userObj.tasks,
+            unlockedModules: userObj.unlockedModules,
+            unlockRequested: userObj.unlockRequested,
+            role: userObj.role,
+            fullname: userObj.fullname,
+            mobile: userObj.mobile,
+            email: userObj.email,
+            year: userObj.year
         });
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -520,7 +578,7 @@ app.get('/api/progress/get', async (req, res) => {
 
 app.post('/api/progress/save', async (req, res) => {
     try {
-        const { username, unlockedSlides, completedSlides, timeLogs, unlockedModules, alerts, tasks, unlockRequested } = req.body;
+        const { username, unlockedSlides, completedSlides, timeLogs, unlockedModules, alerts, tasks, unlockRequested, email, fullname, mobile, year } = req.body;
         const userObj = await DB.getUser(username);
         if (!userObj) return res.status(404).json({ error: "User not found!" });
 
@@ -531,6 +589,10 @@ app.post('/api/progress/save', async (req, res) => {
         if (alerts !== undefined) userObj.alerts = alerts;
         if (tasks !== undefined) userObj.tasks = tasks;
         if (unlockRequested !== undefined) userObj.unlockRequested = unlockRequested;
+        if (email !== undefined) userObj.email = email;
+        if (fullname !== undefined) userObj.fullname = fullname;
+        if (mobile !== undefined) userObj.mobile = mobile;
+        if (year !== undefined) userObj.year = year;
 
         await DB.saveUser(userObj);
         res.json({ success: true });

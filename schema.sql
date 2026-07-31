@@ -4,6 +4,10 @@
 CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(50) PRIMARY KEY,
     password VARCHAR(255) NOT NULL,
+    email VARCHAR(100),
+    fullname VARCHAR(100),
+    mobile VARCHAR(20),
+    year VARCHAR(20),
     unlocked_slides INT DEFAULT 0,
     completed_slides TEXT, -- JSON Array of completed slide indexes
     slide_notes TEXT, -- JSON Object mapping index to notes
