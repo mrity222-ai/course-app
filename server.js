@@ -233,7 +233,7 @@ const DB = {
 
     async getAllStudents() {
         if (isMySQL) {
-            const [rows] = await dbPool.query("SELECT username, email, fullname, mobile, year, unlocked_slides, completed_slides, time_logs, unlocked_modules, unlock_requested, role FROM users WHERE role = 'student'");
+            const [rows] = await dbPool.query("SELECT username, email, fullname, mobile, year, unlocked_slides, completed_slides, slide_notes, time_logs, unlocked_modules, unlock_requested, role FROM users WHERE role = 'student'");
             return rows.map(r => ({
                 username: r.username,
                 email: r.email || '',
@@ -242,6 +242,7 @@ const DB = {
                 year: r.year || '',
                 unlockedSlides: r.unlocked_slides,
                 completedSlides: JSON.parse(r.completed_slides || '[]'),
+                slideNotes: JSON.parse(r.slide_notes || '{}'),
                 timeLogs: JSON.parse(r.time_logs || '[]'),
                 unlockedModules: JSON.parse(r.unlocked_modules || '{}'),
                 unlockRequested: r.unlock_requested === 1
@@ -258,6 +259,7 @@ const DB = {
                     year: u.year || '',
                     unlockedSlides: u.unlockedSlides,
                     completedSlides: u.completedSlides,
+                    slideNotes: u.slideNotes || {},
                     timeLogs: u.timeLogs,
                     unlockedModules: u.unlockedModules || {},
                     unlockRequested: !!u.unlockRequested

@@ -11824,6 +11824,7 @@ window.renderAdminStudentsList = async function() {
         const total = slidesData.length;
         let completedCount = u.completedSlides ? u.completedSlides.length : 0;
         const pct = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+        const notesCount = u.slideNotes ? Object.keys(u.slideNotes).length : 0;
         
         // Populate target dropdown option
         const opt = document.createElement('option');
@@ -11854,6 +11855,10 @@ window.renderAdminStudentsList = async function() {
         let statusBadge = hasUnlocked 
             ? `<span style="color:#10b981; font-weight:bold; font-size:0.75rem; background:rgba(16,185,129,0.1); padding:2px 6px; border-radius:4px;">🔓 Learning</span>` 
             : `<span style="color:#ef4444; font-weight:bold; font-size:0.75rem; background:rgba(239,68,68,0.1); padding:2px 6px; border-radius:4px;">🔒 Locked</span>`;
+            
+        let requestBadge = u.unlockRequested 
+            ? `<span style="color:#f59e0b; font-weight:bold; font-size:0.7rem; background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.3); padding:2px 6px; border-radius:4px; margin-left:6px; display:inline-flex; align-items:center; gap:3px;">📧 Request Sent!</span>`
+            : ``;
             
         // Calculate average time spent per viewed slide
         let totalSeconds = 0;
@@ -11895,12 +11900,17 @@ window.renderAdminStudentsList = async function() {
         return `
             <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 6px; display: flex; flex-direction: column; gap: 0.5rem; text-align: left; font-size: 0.8rem;">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.25rem;">
-                    <span style="font-weight:bold; color:#ffffff; font-size: 0.9rem;">👤 ${username}</span>
+                    <span style="font-weight:bold; color:#ffffff; font-size: 0.9rem; display:flex; align-items:center; gap:4px;">👤 ${u.fullname || username} ${requestBadge}</span>
                     <div style="display:flex; align-items:center; gap:2px;">${statusBadge}</div>
                 </div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.4rem; color:#cbd5e1; font-size: 0.75rem; background:rgba(0,0,0,0.15); padding:0.5rem; border-radius:4px;">
-                    <div><b>Name:</b> ${username}</div>
+                    <div><b>Name:</b> ${u.fullname || username}</div>
                     <div><b>Avg View Time:</b> <span style="color:#f59e0b; font-weight:bold;">${timeDisplay}</span></div>
+                    <div><b>Mobile:</b> ${u.mobile || '-'}</div>
+                    <div><b>Study Year:</b> ${u.year || '-'}</div>
+                    <div><b>Email:</b> ${u.email || '-'}</div>
+                    <div><b>Progress:</b> <span style="color:#10b981; font-weight:bold;">${pct}% (${completedCount}/${total} slides)</span></div>
+                </div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:0.5rem; color:#cbd5e1; font-size: 0.75rem; margin-top:0.25rem;">
                     <div>Level: <span style="color:#c084fc; font-weight:bold;">${u.studentLevel || 1}</span></div>
                     <div>XP: <span style="color:#a855f7; font-weight:bold;">${u.studentXP || 0}</span></div>
