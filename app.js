@@ -9519,6 +9519,19 @@ checkStyle.innerHTML = `
         display: inline-block;
         margin-left: 5px;
     }
+    .accordion-item.locked-module .accordion-header {
+        opacity: 0.65 !important;
+        cursor: not-allowed !important;
+    }
+    .accordion-item.locked-module .accordion-content {
+        display: none !important;
+    }
+    .accordion-item.locked-module .chevron {
+        display: none !important;
+    }
+    .module-lock-indicator {
+        filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.4));
+    }
     
     /* Cyberpunk Theme variables */
     body[data-theme="cyberpunk"] {
@@ -9830,6 +9843,12 @@ document.body.setAttribute('data-theme', themesList[currentThemeIndex]);
 /* Toggle Sidebar Accordion Module */
 window.toggleAccordion = function(index) {
     const accordionItems = document.querySelectorAll('.accordion-item');
+    const targetItem = accordionItems[index];
+    if (targetItem && targetItem.classList.contains('locked-module')) {
+        alert("🔒 Yeh course section aapke instructor/admin dwara locked hai! Padhe jaane ke liye admin approval ki aavashyakta hai.");
+        return;
+    }
+    
     accordionItems.forEach((item, idx) => {
         if (idx === index) {
             item.classList.toggle('active');
@@ -11795,20 +11814,79 @@ window.closeStudentAlertsModal = function() {
     document.getElementById('student-alerts-modal').classList.remove('active');
 };
 
-/* --- Sequential Lock/Unlock Helper --- */
+/* --- Granular Accordion Header Locking Helper --- */
 window.updateSidebarLocks = function() {
+    const currentUser = localStorage.getItem('codewith_ai_currentUser');
+    let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
+    const u = currentUser ? users[currentUser] : null;
+    
+    const accordionItems = document.querySelectorAll('.accordion-item');
+    accordionItems.forEach((item, idx) => {
+        // Map accordion index to starting slide indexes
+        let sampleSlideIdx = 0;
+        if (idx === 0) sampleSlideIdx = 0;
+        else if (idx === 1) sampleSlideIdx = 26;
+        else if (idx === 2) sampleSlideIdx = 66;
+        else if (idx === 3) sampleSlideIdx = 104;
+        else if (idx === 4) sampleSlideIdx = 121;
+        else if (idx === 5) sampleSlideIdx = 143;
+        else if (idx === 6) sampleSlideIdx = 267;
+        else if (idx === 7) sampleSlideIdx = 280;
+        else {
+            const customIdx = idx - 8;
+            if (customCourses[customIdx]) {
+                const firstSlide = customCourses[customIdx].slides[0];
+                sampleSlideIdx = slidesData.indexOf(firstSlide);
+            }
+        }
+        
+        const moduleName = getSlideModuleName(sampleSlideIdx);
+        // Fallback checks
+        let isUnlocked = false;
+        if (u) {
+            if (u.unlockedModules) {
+                isUnlocked = u.unlockedModules[moduleName] === true;
+            } else if (u.unlocked === true && moduleName === "HTML Course") {
+                isUnlocked = true;
+            }
+        } else {
+            // Guest users are locked
+            isUnlocked = false;
+        }
+        
+        const header = item.querySelector('.accordion-header');
+        if (header) {
+            let lockBadge = header.querySelector('.module-lock-indicator');
+            if (!lockBadge) {
+                lockBadge = document.createElement('span');
+                lockBadge.className = 'module-lock-indicator';
+                lockBadge.style.marginRight = '0.5rem';
+                lockBadge.style.fontSize = '0.9rem';
+                // Insert it before the chevron svg
+                const chevron = header.querySelector('.chevron');
+                if (chevron) {
+                    header.insertBefore(lockBadge, chevron);
+                } else {
+                    header.appendChild(lockBadge);
+                }
+            }
+            
+            if (isUnlocked) {
+                item.classList.remove('locked-module');
+                lockBadge.innerText = ''; // Clear indicator when unlocked
+            } else {
+                item.classList.add('locked-module');
+                lockBadge.innerText = '🔒'; // Display padlock when locked
+            }
+        }
+    });
+    
+    // Clear all progressive lock classes and padlock icons from subheadings inside
     sidebarLinks = document.querySelectorAll('.slide-link');
     sidebarLinks.forEach(link => {
-        const slideIdx = parseInt(link.getAttribute('data-slide'));
-        if (isNaN(slideIdx)) return;
-        
-        // Locked if not slide 0 AND previous slide is not completed
-        const isUnlocked = slideIdx === 0 || completedSlides[slideIdx - 1] === true;
-        
-        if (isUnlocked) {
-            link.classList.remove('locked-sequence');
-        } else {
-            link.classList.add('locked-sequence');
+        link.classList.remove('locked-sequence');
+        if (link.innerHTML.includes('🔒')) {
+            link.innerHTML = link.innerHTML.replace('🔒', '').trim();
         }
     });
 };
