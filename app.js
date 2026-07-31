@@ -11174,6 +11174,97 @@ function appendChatMessage(sender, text, isAI) {
     }
 }
 
+/* AI Coding Mentor Custom Chat Query Processor */
+window.sendAIMentorMessage = function() {
+    const input = document.getElementById('ai-chat-input');
+    if (!input) return;
+    const val = input.value.trim();
+    if (!val) return;
+    
+    // Add user message bubble
+    appendChatMessage("User", val, false);
+    input.value = '';
+    
+    const apiKey = localStorage.getItem('codewith_ai_sarvam_key') || 'sk_aa41zj3o_LzmhKFdzcLWoEvOrSWMIJJNR';
+    const activeSlide = slidesData[currentSlideIndex];
+    const slideContext = activeSlide ? `Slide Title: "${activeSlide.title}"\nContent: "${activeSlide.content.replace(/<[^>]*>/g, '')}"` : '';
+    
+    const chatFeed = document.getElementById('ai-chat-feed');
+    const loadingBubble = document.createElement('div');
+    loadingBubble.style.padding = '0.75rem';
+    loadingBubble.style.borderRadius = '8px';
+    loadingBubble.style.maxWidth = '85%';
+    loadingBubble.style.fontSize = '0.85rem';
+    loadingBubble.style.background = 'rgba(168,85,247,0.1)';
+    loadingBubble.style.border = '1px solid rgba(168,85,247,0.2)';
+    loadingBubble.style.color = '#c084fc';
+    loadingBubble.style.alignSelf = 'flex-start';
+    loadingBubble.innerHTML = `🤖 <b>AI Mentor:</b> Thinking... ⏳`;
+    chatFeed.appendChild(loadingBubble);
+    chatFeed.scrollTop = chatFeed.scrollHeight;
+    
+    // Request Sarvam AI flagship 105b chat completions API
+    fetch("https://api.sarvam.ai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "api-subscription-key": apiKey,
+            "Authorization": "Bearer " + apiKey
+        },
+        body: JSON.stringify({
+            model: "sarvam-105b",
+            messages: [
+                {
+                    role: "system",
+                    content: `You are codewith_ai Assistant, an expert coding tutor for kids and students. The student is currently studying this slide:\n${slideContext}\n\nAnswer the student's question specifically in the context of this topic. Keep your response short, extremely clear, and write in simple Hinglish (Hindi written in English text mixed with English coding terms) so it is easy for a child to understand. You can add brief code examples if helpful.`
+                },
+                {
+                    role: "user",
+                    content: val
+                }
+            ]
+        })
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("HTTP error " + res.status);
+        return res.json();
+    })
+    .then(data => {
+        if (loadingBubble.parentNode) {
+            loadingBubble.parentNode.removeChild(loadingBubble);
+        }
+        
+        let reply = "";
+        if (data.choices && data.choices.length > 0 && data.choices[0].message) {
+            reply = data.choices[0].message.content;
+        } else {
+            reply = "Sorry, I could not generate an answer right now. Please verify key balance limits.";
+        }
+        appendChatMessage("AI Mentor", reply, true);
+    })
+    .catch(err => {
+        if (loadingBubble.parentNode) {
+            loadingBubble.parentNode.removeChild(loadingBubble);
+        }
+        
+        console.error("Sarvam AI Chat API fallback:", err);
+        let fallbackReply = `Aapka question "${activeSlide.title}" topic ke baare me hai. Kripya dhyan se slide contents aur practice code ko padhein aur execute karein!`;
+        
+        const lowercaseVal = val.toLowerCase();
+        if (lowercaseVal.includes('html') || lowercaseVal.includes('tag')) {
+            fallbackReply = "HTML (HyperText Markup Language) web page ka structure banane ke liye use hota hai. Jaise <h1> heading ke liye aur <p> paragraph ke liye tags use kiye jaate hain. Sandbox editor me practice run karke check kijiye!";
+        } else if (lowercaseVal.includes('css') || lowercaseVal.includes('style') || lowercaseVal.includes('color')) {
+            fallbackReply = "CSS (Cascading Style Sheets) page ko style aur design karne ke liye use hota hai. Jaise color change karna, spacing (padding, margin) add karna. Aap slide contents ke styling rules editor me practice karein!";
+        } else if (lowercaseVal.includes('javascript') || lowercaseVal.includes('js') || lowercaseVal.includes('variable') || lowercaseVal.includes('function')) {
+            fallbackReply = "JavaScript page ko interactive aur dynamic banane ke liye use hota hai. Jaise click karne par actions trigger hona. Aap let, const aur console.log ko variables declare karne ke liye execute karein!";
+        } else if (lowercaseVal.includes('react') || lowercaseVal.includes('component')) {
+            fallbackReply = "React ek JavaScript library hai jo UI component-based blocks banane me help karti hai. Isme states aur props dynamic values pass karne ke liye create kiye jaate hain.";
+        }
+        
+        appendChatMessage("AI Mentor", fallbackReply, true);
+    });
+};
+
 /* Feature 1: Slide-wise Study Notes Maker */
 window.toggleSlideNotes = function() {
     const notesPane = document.getElementById('slide-notes-pane');
