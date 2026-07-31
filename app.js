@@ -12275,13 +12275,11 @@ window.playAILectureVideo = function() {
                 "api-subscription-key": apiKey
             },
             body: JSON.stringify({
-                inputs: [cleanText],
+                text: cleanText,
                 target_language_code: "hi-IN",
                 speaker: "shubh",
-                pitch: 0,
                 pace: 0.95,
-                loudness: 1.5,
-                speech_profile: "teaching"
+                model: "bulbul:v3"
             })
         })
         .then(res => {
@@ -12290,8 +12288,9 @@ window.playAILectureVideo = function() {
         })
         .then(data => {
             if (!aiVideoPlaying) return; // stopped while loading
-            if (data.audio_content) {
-                window.activeSarvamAudio = new Audio("data:audio/wav;base64," + data.audio_content);
+            if (data.audios && data.audios.length > 0) {
+                const base64Audio = data.audios[0];
+                window.activeSarvamAudio = new Audio("data:audio/wav;base64," + base64Audio);
                 
                 window.activeSarvamAudio.onplay = function() {
                     startAIAvatarRender(canvas);
