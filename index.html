@@ -936,11 +936,23 @@
                     </div>
                     <div id="slide-video-pane" style="width: 320px; display: none; flex-direction: column; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; box-sizing: border-box; backdrop-filter: blur(10px);" class="no-print">
                         <div style="font-size: 0.85rem; font-weight: bold; color: #f87171; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
-                            <span>🎥 Video Lecture</span>
+                            <span>🤖 codewith_ai Assistant</span>
                             <button onclick="toggleSlideVideoDrawer()" style="background:none; border:none; color:#ef4444; font-size:0.75rem; cursor:pointer;">Close</button>
                         </div>
-                        <div style="position: relative; width: 100%; padding-bottom: 56.25%; height: 0; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15);">
-                            <iframe id="slide-video-iframe" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;" src="" title="Video lecture" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                        
+                        <!-- AI Avatar Renderer Canvas -->
+                        <div style="position: relative; width: 100%; height: 180px; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); background: #070314; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                            <canvas id="ai-avatar-canvas" width="300" height="150" style="width: 100%; height: 100%;"></canvas>
+                            <!-- Subtitles display -->
+                            <div id="ai-video-subtitles" style="position: absolute; bottom: 8px; left: 8px; right: 8px; background: rgba(0,0,0,0.75); padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; color: #38bdf8; text-align: center; font-weight: bold; min-height: 24px; line-height: 1.2; max-height: 48px; overflow: hidden;">
+                                Click Play to begin AI lecture...
+                            </div>
+                        </div>
+                        
+                        <!-- Control buttons -->
+                        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; width: 100%;">
+                            <button id="btn-play-ai-video" onclick="playAILectureVideo()" class="console-clear-btn" style="flex: 1; background: #10b981; color: black; font-weight: bold; font-size: 0.75rem; border-color: #10b981; padding: 0.35rem 0.5rem; border-radius: 4px;">▶ Play Lecture</button>
+                            <button id="btn-stop-ai-video" onclick="stopAILectureVideo()" class="console-clear-btn" style="background: #ef4444; color: white; font-weight: bold; font-size: 0.75rem; border-color: #ef4444; padding: 0.35rem 0.5rem; border-radius: 4px;" disabled>⬛ Stop</button>
                         </div>
                     </div>
                     <div id="slide-notes-pane" style="width: 250px; display: none; flex-direction: column; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); padding: 1rem; border-radius: 8px; box-sizing: border-box;" class="no-print">
@@ -1127,13 +1139,9 @@
                         <label style="font-size: 0.8rem; color: #cbd5e1; display: block; margin-bottom: 0.25rem;">Unique Course ID</label>
                         <input type="text" id="upload-course-id" placeholder="e.g. python-next" style="width: 100%; padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; box-sizing: border-box;">
                     </div>
-                    <div style="margin-bottom: 1rem;">
+                    <div style="margin-bottom: 1.5rem;">
                         <label style="font-size: 0.8rem; color: #cbd5e1; display: block; margin-bottom: 0.25rem;">Select PDF Document</label>
                         <input type="file" id="upload-pdf-file" accept=".pdf" style="width: 100%; color: #cbd5e1; font-size: 0.8rem;">
-                    </div>
-                    <div style="margin-bottom: 1.5rem;">
-                        <label style="font-size: 0.8rem; color: #cbd5e1; display: block; margin-bottom: 0.25rem;">YouTube Video URL (Optional)</label>
-                        <input type="text" id="upload-course-video" placeholder="e.g. https://www.youtube.com/embed/FwFsp03Q5qQ" style="width: 100%; padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; box-sizing: border-box; outline: none;">
                     </div>
                     <button class="modal-btn" style="width: 100%;" id="btn-parse-pdf" onclick="startPDFBrowserParsing()">Parse & Compile PDF</button>
                     

@@ -10001,25 +10001,16 @@ function showSlide(index) {
         sandboxContainer.style.display = 'none';
     }
 
-    // Reload video if drawer is visible
+    // Auto-update or stop active AI Avatar lecture when changing slides
     const videoPane = document.getElementById('slide-video-pane');
-    const videoIframe = document.getElementById('slide-video-iframe');
     const videoBtn = document.getElementById('btn-toggle-video');
-    const videoUrl = typeof getSlideVideoUrl === 'function' ? getSlideVideoUrl(index) : '';
     
-    if (videoBtn) {
-        if (videoUrl) {
-            videoBtn.style.display = 'inline-flex';
-        } else {
-            videoBtn.style.display = 'none';
-            if (videoPane) videoPane.style.display = 'none';
-            if (videoIframe) videoIframe.src = '';
-        }
-    }
-    
-    if (videoPane && videoPane.style.display === 'flex' && videoUrl) {
-        if (videoIframe && videoIframe.src !== videoUrl) {
-            videoIframe.src = videoUrl;
+    if (videoPane) {
+        if (videoPane.style.display === 'flex') {
+            // Restart audio lecturing with new slide scripts!
+            setTimeout(() => {
+                if (typeof playAILectureVideo === 'function') playAILectureVideo();
+            }, 100);
         }
     }
 
@@ -10827,8 +10818,6 @@ window.startPDFBrowserParsing = async function() {
     const id = document.getElementById('upload-course-id').value.trim().toLowerCase();
     const fileInput = document.getElementById('upload-pdf-file');
     const statusDiv = document.getElementById('admin-upload-status');
-    const videoInput = document.getElementById('upload-course-video');
-    const videoUrl = videoInput ? videoInput.value.trim() : '';
     
     if (!title || !id || !fileInput.files.length) {
         alert("Please fill all fields and select a PDF file.");
@@ -10902,8 +10891,7 @@ window.startPDFBrowserParsing = async function() {
             customCourses.push({
                 title: title,
                 id: id,
-                slides: courseSlides,
-                videoUrl: videoUrl
+                slides: courseSlides
             });
             localStorage.setItem('codewith_ai_custom_courses', JSON.stringify(customCourses));
             
@@ -10919,7 +10907,6 @@ window.startPDFBrowserParsing = async function() {
             
             document.getElementById('upload-course-title').value = '';
             document.getElementById('upload-course-id').value = '';
-            if (videoInput) videoInput.value = '';
             fileInput.value = '';
             
         } catch(err) {
@@ -12192,61 +12179,286 @@ function updateNextButtonTimerDisplay() {
     btnNext.disabled = true;
 }
 
-/* --- Slide Video Lecture Integration Engine --- */
-window.getSlideVideoUrl = function(index) {
-    const slide = slidesData[index];
-    if (!slide) return '';
-    
-    // Check if slide belongs to a custom course and that custom course has a video url
-    const customMatch = customCourses.find(c => c.slides.includes(slide));
-    if (customMatch && customMatch.videoUrl) {
-        return customMatch.videoUrl;
-    }
-    
-    // Default video lectures mapping for core courses
-    const modName = getSlideModuleName(index);
-    switch(modName) {
-        case "HTML Course":
-            return "https://www.youtube.com/embed/HcOc7P5BMi4";
-        case "CSS Course":
-            return "https://www.youtube.com/embed/yfoY53QXEnI";
-        case "JavaScript Course":
-            return "https://www.youtube.com/embed/W6NZfCO5SIk";
-        case "React Course":
-            return "https://www.youtube.com/embed/Ke90Tje7VS0";
-        case "Backend Course":
-            return "https://www.youtube.com/embed/HXR1Wn3L04o";
-        case "Advanced Backend & AI":
-            return "https://www.youtube.com/embed/1vRzT47l2p8";
-        case "VPS Hosting Guide":
-            return "https://www.youtube.com/embed/HnCVLMV3E2E";
-        case "Next.js Course":
-            return "https://www.youtube.com/embed/ZjAqacLYzQI";
-        default:
-            return ""; // Hide if not matching any
-    }
-};
+
 
 window.toggleSlideVideoDrawer = function() {
     const pane = document.getElementById('slide-video-pane');
-    const iframe = document.getElementById('slide-video-iframe');
     const videoBtn = document.getElementById('btn-toggle-video');
-    if (!pane || !iframe || !videoBtn) return;
+    if (!pane || !videoBtn) return;
     
     if (pane.style.display === 'none' || !pane.style.display) {
         pane.style.display = 'flex';
         videoBtn.style.background = '#ef4444';
         videoBtn.style.color = '#ffffff';
         
-        // Load video source
-        const url = getSlideVideoUrl(currentSlideIndex);
-        iframe.src = url;
+        // Auto play the AI lecture!
+        setTimeout(() => {
+            playAILectureVideo();
+        }, 100);
     } else {
         pane.style.display = 'none';
         videoBtn.style.background = 'rgba(239, 68, 68, 0.1)';
         videoBtn.style.color = '#f87171';
         
-        // Stop playing by clearing source
-        iframe.src = '';
+        stopAILectureVideo();
     }
 };
+
+/* --- Dynamic AI Avatar Canvas Renderer & Audio Lecturer Engine --- */
+let aiVideoPlaying = false;
+let aiAvatarAnimationId = null;
+let aiSpeechUtterance = null;
+let subtitleUpdateInterval = null;
+
+window.playAILectureVideo = function() {
+    stopAILectureVideo(); // Reset any active states
+    
+    const canvas = document.getElementById('ai-avatar-canvas');
+    const playBtn = document.getElementById('btn-play-ai-video');
+    const stopBtn = document.getElementById('btn-stop-ai-video');
+    const subtitleBox = document.getElementById('ai-video-subtitles');
+    if (!canvas || !playBtn || !stopBtn) return;
+    
+    aiVideoPlaying = true;
+    playBtn.disabled = true;
+    stopBtn.disabled = false;
+    playBtn.innerText = "🗣️ Lecturing...";
+    
+    const activeSlide = slidesData[currentSlideIndex];
+    if (!activeSlide) return;
+    
+    // Extract explanation script from slide HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = activeSlide.content;
+    const hingEl = tempDiv.querySelector('.hinglish-explanation');
+    const rawLectureText = hingEl ? hingEl.textContent : tempDiv.textContent;
+    
+    // Clean headers and formatting strings
+    const cleanText = rawLectureText
+        .replace(/🇮🇳 Hinglish \(आसान भाषा में\)/g, '')
+        .replace(/🇬🇧 English Explanation/g, '')
+        .trim();
+        
+    // Break script into manageable subtitle slides
+    const subtitleSentences = cleanText.split(/[.।]/).map(s => s.trim()).filter(s => s.length > 2);
+    let activeSentenceIndex = 0;
+    
+    if (subtitleBox) {
+        subtitleBox.innerText = subtitleSentences[0] || "Hi, I am your codewith_ai avatar tutor!";
+    }
+    
+    // Start Audio Lecturing using browser WebSpeech SpeechSynthesis
+    aiSpeechUtterance = new SpeechSynthesisUtterance(cleanText);
+    
+    // Use dynamic Indian English accent if available
+    const voices = window.speechSynthesis.getVoices();
+    const indVoice = voices.find(v => v.lang.includes('IN') || v.lang.includes('hi'));
+    if (indVoice) aiSpeechUtterance.voice = indVoice;
+    
+    aiSpeechUtterance.onboundary = function(event) {
+        if (event.name === 'sentence') {
+            // Find current text boundary index to auto-update subtitle frame
+            const charIndex = event.charIndex;
+            const textRemaining = cleanText.substring(charIndex);
+            const nextPeriod = textRemaining.indexOf('.');
+            const currentSubText = nextPeriod !== -1 ? textRemaining.substring(0, nextPeriod).trim() : textRemaining.trim();
+            if (subtitleBox && currentSubText) {
+                subtitleBox.innerText = currentSubText;
+            }
+        }
+    };
+    
+    aiSpeechUtterance.onend = function() {
+        stopAILectureVideo();
+    };
+    
+    aiSpeechUtterance.onerror = function() {
+        stopAILectureVideo();
+    };
+    
+    window.speechSynthesis.speak(aiSpeechUtterance);
+    
+    // Start Canvas Render Animation loop
+    startAIAvatarRender(canvas);
+};
+
+window.stopAILectureVideo = function() {
+    aiVideoPlaying = false;
+    
+    const canvas = document.getElementById('ai-avatar-canvas');
+    const playBtn = document.getElementById('btn-play-ai-video');
+    const stopBtn = document.getElementById('btn-stop-ai-video');
+    const subtitleBox = document.getElementById('ai-video-subtitles');
+    
+    if (playBtn) {
+        playBtn.disabled = false;
+        playBtn.innerText = "▶ Play Lecture";
+    }
+    if (stopBtn) stopBtn.disabled = true;
+    if (subtitleBox) subtitleBox.innerText = "Click Play to begin AI lecture...";
+    
+    // Halt TTS Audio Engine
+    if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+    }
+    
+    // Cancel canvas render loop
+    if (aiAvatarAnimationId) {
+        cancelAnimationFrame(aiAvatarAnimationId);
+        aiAvatarAnimationId = null;
+    }
+    
+    // Clear canvas
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+};
+
+function startAIAvatarRender(canvas) {
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+    
+    let frame = 0;
+    
+    function draw() {
+        if (!aiVideoPlaying) return;
+        
+        ctx.clearRect(0, 0, w, h);
+        
+        // --- 1. Background studio elements ---
+        ctx.fillStyle = '#0a0518';
+        ctx.fillRect(0, 0, w, h);
+        
+        // Ambient neon background lighting
+        const grad = ctx.createRadialGradient(w/2, h/2 - 10, 20, w/2, h/2, 100);
+        grad.addColorStop(0, 'rgba(56, 189, 248, 0.15)');
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+        
+        // Draw cyber grids line
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.05)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = 0; i < w; i += 20) {
+            ctx.moveTo(i, 0); ctx.lineTo(i, h);
+        }
+        for (let i = 0; i < h; i += 20) {
+            ctx.moveTo(0, i); ctx.lineTo(w, i);
+        }
+        ctx.stroke();
+        
+        // --- 2. Draw Tutor Body (Jacket with codewith_ai branding) ---
+        ctx.save();
+        ctx.shadowColor = 'rgba(168, 85, 247, 0.3)';
+        ctx.shadowBlur = 12;
+        
+        // Shoulders & Body
+        ctx.fillStyle = '#1e1b4b'; // Jacket base dark color
+        ctx.beginPath();
+        ctx.moveTo(w/2 - 60, h);
+        ctx.quadraticCurveTo(w/2 - 50, h - 50, w/2 - 35, h - 55);
+        ctx.lineTo(w/2 + 35, h - 55);
+        ctx.quadraticCurveTo(w/2 + 50, h - 50, w/2 + 60, h);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Neon zipper light jacket details
+        ctx.strokeStyle = '#c084fc';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(w/2, h - 55);
+        ctx.lineTo(w/2, h);
+        ctx.stroke();
+        
+        // BRANDING TEXT: "codewith_ai" printed on the jacket collar/lapel
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 8px Courier New, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('CODEWITH_AI', w/2, h - 15);
+        
+        // Shirt/neck v-opening
+        ctx.fillStyle = '#e2e8f0'; // Neck skin
+        ctx.beginPath();
+        ctx.moveTo(w/2 - 8, h - 55);
+        ctx.lineTo(w/2 + 8, h - 55);
+        ctx.lineTo(w/2, h - 42);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.restore();
+        
+        // --- 3. Draw Neck ---
+        ctx.fillStyle = '#e2e8f0';
+        ctx.fillRect(w/2 - 7, h - 50, 14, 12);
+        
+        // --- 4. Draw Head (Face) ---
+        const headY = h - 68 + Math.sin(frame * 0.05) * 1.5; // Smooth breathing bobbing motion
+        
+        ctx.fillStyle = '#f8fafc'; // Clean high tech robot face skin
+        ctx.beginPath();
+        ctx.arc(w/2, headY, 20, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // --- 5. Cyber Tutor Hair/Helmet details ---
+        ctx.fillStyle = '#0f172a'; // Tech hair
+        ctx.beginPath();
+        ctx.arc(w/2, headY - 4, 21, Math.PI, 0); // top half cap
+        ctx.fill();
+        // Hair bangs on forehead
+        ctx.beginPath();
+        ctx.moveTo(w/2 - 20, headY - 2);
+        ctx.lineTo(w/2 - 10, headY + 3);
+        ctx.lineTo(w/2, headY - 2);
+        ctx.lineTo(w/2 + 10, headY + 3);
+        ctx.lineTo(w/2 + 20, headY - 2);
+        ctx.closePath();
+        ctx.fill();
+        
+        // --- 6. Cybernetic Futuristic Glowing Glasses (Eyes) ---
+        ctx.save();
+        ctx.shadowColor = '#00ffcc';
+        ctx.shadowBlur = 8;
+        
+        // Left Eye Glass
+        ctx.fillStyle = 'rgba(0, 255, 204, 0.9)';
+        ctx.beginPath();
+        ctx.roundRect(w/2 - 13, headY - 6, 8, 5, 2);
+        ctx.fill();
+        
+        // Right Eye Glass
+        ctx.beginPath();
+        ctx.roundRect(w/2 + 5, headY - 6, 8, 5, 2);
+        ctx.fill();
+        
+        // Glasses Bridge link
+        ctx.strokeStyle = '#00ffcc';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(w/2 - 5, headY - 4);
+        ctx.lineTo(w/2 + 5, headY - 4);
+        ctx.stroke();
+        
+        ctx.restore();
+        
+        // --- 7. Talking Mouth (Dynamic opening size matching voice vibrations) ---
+        const talkingIntensity = 2 + Math.abs(Math.sin(frame * 0.35)) * 4;
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.ellipse(w/2, headY + 8, 5, talkingIntensity / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Red tongue inside talking mouth
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.ellipse(w/2, headY + 9, 3, talkingIntensity / 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        frame++;
+        aiAvatarAnimationId = requestAnimationFrame(draw);
+    }
+    
+    draw();
+}
