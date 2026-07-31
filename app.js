@@ -11161,13 +11161,19 @@ window.handleAuthSubmit = function() {
     const usernameInput = document.getElementById('auth-username');
     const passwordInput = document.getElementById('auth-password');
     const emailInput = document.getElementById('auth-email');
+    const fullnameInput = document.getElementById('auth-fullname');
+    const mobileInput = document.getElementById('auth-mobile');
+    const yearSelect = document.getElementById('auth-year');
     const errorMsg = document.getElementById('auth-error-msg');
     
     const username = usernameInput.value.trim();
     const password = passwordInput.value.trim();
     const email = emailInput.value.trim();
+    const fullname = fullnameInput ? fullnameInput.value.trim() : '';
+    const mobile = mobileInput ? mobileInput.value.trim() : '';
+    const year = yearSelect ? yearSelect.value : '';
     
-    if (!username || !password || (activeAuthTab === 'signup' && !email)) {
+    if (!username || !password || (activeAuthTab === 'signup' && (!email || !fullname || !mobile || !year))) {
         errorMsg.innerText = "Kripya saare fields sahi se bharein!";
         errorMsg.style.display = 'block';
         return;
@@ -11186,6 +11192,10 @@ window.handleAuthSubmit = function() {
             username: username,
             password: password,
             email: email,
+            fullname: fullname,
+            mobile: mobile,
+            year: year,
+            unlocked: false, // Wait for admin unlock approval
             currentSlideIndex: 0,
             completedSlides: {},
             studentXP: 0,
@@ -11196,12 +11206,14 @@ window.handleAuthSubmit = function() {
         localStorage.setItem('codewith_ai_users', JSON.stringify(users));
         activeAuthTab = 'signin';
         switchAuthTab('signin');
-        errorMsg.innerText = "Registration safal! Ab login karein.";
+        errorMsg.innerText = "Registration safal! Admin approval ke baad access milega. Login karein.";
         errorMsg.style.color = '#10b981';
         errorMsg.style.display = 'block';
         
         // Reset fields
         emailInput.value = '';
+        if (fullnameInput) fullnameInput.value = '';
+        if (mobileInput) mobileInput.value = '';
     } else {
         // Sign In
         if (!users[username] || users[username].password !== password) {
@@ -11228,12 +11240,12 @@ window.handleAuthSubmit = function() {
         document.getElementById('session-username').innerText = `👤 ${username}`;
         
         // Refresh UI components
-        showSlide(currentSlideIndex);
         updateDashboard();
         updateXPBar();
         renderContributionGrid();
 
-        // Check for alerts
+        // Check locks and show slides
+        loadStudentSession();
         checkStudentAlerts();
     }
 };
@@ -11242,6 +11254,10 @@ window.loadStudentSession = function() {
     const currentUser = localStorage.getItem('codewith_ai_currentUser');
     const authGate = document.getElementById('student-auth-gate');
     const sessionUser = document.getElementById('session-username');
+    const lockOverlay = document.getElementById('course-lock-overlay');
+    const slideCard = document.getElementById('slide-card');
+    const sandbox = document.getElementById('sandbox');
+    const nav = document.querySelector('.levels-nav');
     
     if (currentUser) {
         let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
@@ -11257,8 +11273,31 @@ window.loadStudentSession = function() {
             if (authGate) authGate.style.display = 'none';
             if (sessionUser) sessionUser.innerText = `👤 ${currentUser}`;
             
-            // Check alerts
-            checkStudentAlerts();
+            // Handle Admin Course Approval Lock status
+            if (u.unlocked === true) {
+                if (slideCard) slideCard.style.display = 'block';
+                if (lockOverlay) lockOverlay.style.display = 'none';
+                if (nav) {
+                    nav.style.pointerEvents = 'auto';
+                    nav.style.opacity = '1';
+                }
+                
+                showSlide(currentSlideIndex);
+            } else {
+                if (slideCard) slideCard.style.display = 'none';
+                if (sandbox) sandbox.style.display = 'none';
+                if (lockOverlay) {
+                    lockOverlay.style.display = 'flex';
+                    document.getElementById('lock-fullname').innerText = u.fullname || '-';
+                    document.getElementById('lock-mobile').innerText = u.mobile || '-';
+                    document.getElementById('lock-year').innerText = u.year || '-';
+                }
+                if (nav) {
+                    nav.style.pointerEvents = 'none';
+                    nav.style.opacity = '0.4';
+                }
+            }
+            
             return;
         }
     }
@@ -11266,6 +11305,12 @@ window.loadStudentSession = function() {
     // Default locked guest state
     if (authGate) authGate.style.display = 'flex';
     if (sessionUser) sessionUser.innerText = `👤 Guest`;
+    if (slideCard) slideCard.style.display = 'block';
+    if (lockOverlay) lockOverlay.style.display = 'none';
+    if (nav) {
+        nav.style.pointerEvents = 'auto';
+        nav.style.opacity = '1';
+    }
 };
 
 window.saveStudentProgress = function() {
@@ -11294,6 +11339,17 @@ window.logoutStudent = function() {
     studentLevel = 1;
     slideNotes = {};
     activityLog = {};
+    
+    // Restore layout UI to unlocked default
+    const lockOverlay = document.getElementById('course-lock-overlay');
+    const slideCard = document.getElementById('slide-card');
+    const nav = document.querySelector('.levels-nav');
+    if (slideCard) slideCard.style.display = 'block';
+    if (lockOverlay) lockOverlay.style.display = 'none';
+    if (nav) {
+        nav.style.pointerEvents = 'auto';
+        nav.style.opacity = '1';
+    }
     
     // Show auth gate
     const authGate = document.getElementById('student-auth-gate');
@@ -11379,25 +11435,54 @@ window.renderAdminStudentsList = function() {
         opt.innerText = username;
         selectTarget.appendChild(opt);
         
+        const lockBtnText = u.unlocked ? "🔒 Lock Course" : "🔓 Unlock Course";
+        const lockBtnBg = u.unlocked ? "#ef4444" : "#10b981";
+        const statusBadge = u.unlocked 
+            ? `<span style="color:#10b981; font-weight:bold; font-size:0.75rem; background:rgba(16,185,129,0.1); padding:2px 6px; border-radius:4px;">🔓 Unlocked</span>` 
+            : `<span style="color:#ef4444; font-weight:bold; font-size:0.75rem; background:rgba(239,68,68,0.1); padding:2px 6px; border-radius:4px;">🔒 Locked</span>`;
+        
         return `
             <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 6px; display: flex; flex-direction: column; gap: 0.5rem; text-align: left; font-size: 0.8rem;">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.25rem;">
                     <span style="font-weight:bold; color:#ffffff; font-size: 0.9rem;">👤 ${username}</span>
-                    <span style="color:#94a3b8; font-size: 0.75rem;">${u.email || "No Email"}</span>
+                    ${statusBadge}
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.4rem; color:#cbd5e1; font-size: 0.75rem; background:rgba(0,0,0,0.15); padding:0.5rem; border-radius:4px;">
+                    <div><b>Name:</b> ${u.fullname || username}</div>
+                    <div><b>Mobile:</b> ${u.mobile || 'N/A'}</div>
+                    <div><b>Year:</b> ${u.year || 'N/A'}</div>
+                    <div><b>Email:</b> ${u.email || 'N/A'}</div>
                 </div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:0.5rem; color:#cbd5e1; font-size: 0.75rem;">
                     <div>Level: <span style="color:#c084fc; font-weight:bold;">${u.studentLevel || 1}</span></div>
                     <div>XP: <span style="color:#a855f7; font-weight:bold;">${u.studentXP || 0}</span></div>
                     <div>Progress: <span style="color:#10b981; font-weight:bold;">${pct}%</span></div>
                 </div>
-                <div style="color: #94a3b8; font-size: 0.75rem;">
-                    Last Active Slide: <span style="color: #38bdf8;">Slide ${(u.currentSlideIndex || 0) + 1} (${slidesData[u.currentSlideIndex || 0]?.title || "HTML"})</span>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.25rem; font-size: 0.75rem;">
+                    <span style="color: #94a3b8;">Active Slide: Slide ${(u.currentSlideIndex || 0) + 1}</span>
+                    <button onclick="toggleStudentLock('${username}')" class="console-clear-btn" style="background:${lockBtnBg}; border-color:${lockBtnBg}; color:${u.unlocked ? 'white' : 'black'}; padding:0.25rem 0.5rem; font-size:0.7rem; font-weight:bold;">
+                        ${lockBtnText}
+                    </button>
                 </div>
             </div>
         `;
     }).join('');
     
     container.innerHTML = tableRows;
+};
+
+window.toggleStudentLock = function(username) {
+    let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
+    if (users[username]) {
+        users[username].unlocked = !users[username].unlocked;
+        localStorage.setItem('codewith_ai_users', JSON.stringify(users));
+        renderAdminStudentsList();
+        
+        // If the targeted student is currently logged in, refresh view instantly
+        if (localStorage.getItem('codewith_ai_currentUser') === username) {
+            loadStudentSession();
+        }
+    }
 };
 
 window.sendAdminNotification = function() {

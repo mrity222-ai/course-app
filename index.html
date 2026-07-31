@@ -48,6 +48,24 @@
             <div id="auth-form" style="display: flex; flex-direction: column; gap: 0.75rem; text-align: left;">
                 <div id="signup-fields" style="display: none; flex-direction: column; gap: 0.75rem;">
                     <div>
+                        <label style="color: rgba(255,255,255,0.8); font-size: 0.75rem; display: block; margin-bottom: 0.25rem; font-weight: 600;">Full Name</label>
+                        <input type="text" id="auth-fullname" placeholder="Student Full Name" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white; box-sizing: border-box; font-size: 0.85rem; outline: none; transition: 0.2s;">
+                    </div>
+                    <div>
+                        <label style="color: rgba(255,255,255,0.8); font-size: 0.75rem; display: block; margin-bottom: 0.25rem; font-weight: 600;">Mobile Number</label>
+                        <input type="tel" id="auth-mobile" placeholder="10-digit Phone Number" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white; box-sizing: border-box; font-size: 0.85rem; outline: none; transition: 0.2s;">
+                    </div>
+                    <div>
+                        <label style="color: rgba(255,255,255,0.8); font-size: 0.75rem; display: block; margin-bottom: 0.25rem; font-weight: 600;">Class / Study Year</label>
+                        <select id="auth-year" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white; box-sizing: border-box; font-size: 0.85rem; outline: none; transition: 0.2s;">
+                            <option value="1st Year">1st Year</option>
+                            <option value="2nd Year">2nd Year</option>
+                            <option value="3rd Year">3rd Year</option>
+                            <option value="4th Year">4th Year</option>
+                            <option value="Other">Other / Graduate</option>
+                        </select>
+                    </div>
+                    <div>
                         <label style="color: rgba(255,255,255,0.8); font-size: 0.75rem; display: block; margin-bottom: 0.25rem; font-weight: 600;">Email Address</label>
                         <input type="email" id="auth-email" placeholder="name@example.com" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white; box-sizing: border-box; font-size: 0.85rem; outline: none; transition: 0.2s;">
                     </div>
@@ -880,6 +898,23 @@
 
         <!-- Presentation Sandbox Panel -->
         <main class="content-area">
+            <!-- Course Lock Overlay Screen -->
+            <div class="slide-card glass" id="course-lock-overlay" style="display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 3rem; font-family: 'Plus Jakarta Sans', sans-serif;">
+                <span style="font-size: 3.5rem; margin-bottom: 1rem; filter: drop-shadow(0 0 10px rgba(168,85,247,0.5));">🔒</span>
+                <h2 style="color: white; font-family: 'Outfit'; font-size: 1.8rem; margin: 0 0 0.5rem 0;">Course Access Locked 🔒</h2>
+                <p style="color: #cbd5e1; max-width: 500px; line-height: 1.6; font-size: 0.95rem; margin-bottom: 1.5rem; margin-left: auto; margin-right: auto;">
+                    Aapka account review ke liye admin/instructor queue me hai. Jab tak admin aapka course **unlock** nahi karenge, tab tak aap tutorial padh nahi sakte.
+                </p>
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); padding: 1.25rem; border-radius: 8px; font-size: 0.85rem; text-align: left; color: #cbd5e1; width: 100%; max-width: 400px; box-sizing: border-box; margin: 0 auto;">
+                    <div style="margin-bottom:0.4rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.4rem;"><b>Full Name:</b> <span id="lock-fullname" style="color:#c084fc; font-weight:bold; float:right;">-</span></div>
+                    <div style="margin-bottom:0.4rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.4rem;"><b>Mobile Number:</b> <span id="lock-mobile" style="color:#38bdf8; font-weight:bold; float:right;">-</span></div>
+                    <div><b>Study Year:</b> <span id="lock-year" style="color:#10b981; font-weight:bold; float:right;">-</span></div>
+                </div>
+                <p style="color: #ef4444; font-size: 0.85rem; font-weight: bold; margin-top: 1.5rem; letter-spacing: 0.5px;">
+                    ⚠️ Kripya apne admin se contact karke course content unlock karwayein.
+                </p>
+            </div>
+
             <!-- Slide Viewer Card -->
             <div class="slide-card glass" id="slide-card">
                 <div class="progress-bar-container">
