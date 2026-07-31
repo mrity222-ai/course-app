@@ -9508,6 +9508,17 @@ checkStyle.innerHTML = `
     .slide-link.completed::before {
         content: '✓ ';
     }
+    .slide-link.locked-sequence {
+        opacity: 0.3 !important;
+        pointer-events: none !important;
+        cursor: not-allowed !important;
+    }
+    .slide-link.locked-sequence::after {
+        content: ' 🔒';
+        font-size: 0.7rem;
+        display: inline-block;
+        margin-left: 5px;
+    }
     
     /* Cyberpunk Theme variables */
     body[data-theme="cyberpunk"] {
@@ -9707,6 +9718,7 @@ function initApp() {
 
     renderAllSlides();
     renderCustomAccordions();
+    updateSidebarLocks();
     showSlide(0);
     setupKeyboardControls();
     updateDashboard();
@@ -9787,6 +9799,7 @@ function renderCustomAccordions() {
         });
     });
     sidebarLinks = document.querySelectorAll('.slide-link');
+    updateSidebarLocks();
 }
 
 /* Cycle Themes: dark -> light -> cyberpunk -> nord */
@@ -9879,7 +9892,7 @@ function showSlide(index) {
     progressBar.style.width = `${progressPercent}%`;
 
     btnPrev.disabled = index === 0;
-    btnNext.disabled = index === slidesData.length - 1;
+    btnNext.disabled = (index === slidesData.length - 1) || (!completedSlides[index]);
 
     sidebarLinks.forEach(link => {
         if (parseInt(link.getAttribute('data-slide')) === index) {
@@ -10010,7 +10023,12 @@ function setupKeyboardControls() {
         }
         
         if (e.key === 'ArrowRight') {
-            nextSlide();
+            const isUnlocked = completedSlides[currentSlideIndex] === true;
+            if (isUnlocked) {
+                nextSlide();
+            } else if (currentSlideIndex < slidesData.length - 1) {
+                alert("🔒 Agla level unlock karne ke liye pehle is slide ko 'Pura Kiya (Completed)' checkmark mark karein!");
+            }
         } else if (e.key === 'ArrowLeft') {
             prevSlide();
         } else if (e.key === '?') {
@@ -11641,4 +11659,22 @@ window.closeStudentAlertsModal = function() {
         }
     }
     document.getElementById('student-alerts-modal').classList.remove('active');
+};
+
+/* --- Sequential Lock/Unlock Helper --- */
+window.updateSidebarLocks = function() {
+    sidebarLinks = document.querySelectorAll('.slide-link');
+    sidebarLinks.forEach(link => {
+        const slideIdx = parseInt(link.getAttribute('data-slide'));
+        if (isNaN(slideIdx)) return;
+        
+        // Locked if not slide 0 AND previous slide is not completed
+        const isUnlocked = slideIdx === 0 || completedSlides[slideIdx - 1] === true;
+        
+        if (isUnlocked) {
+            link.classList.remove('locked-sequence');
+        } else {
+            link.classList.add('locked-sequence');
+        }
+    });
 };
