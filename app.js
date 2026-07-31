@@ -9908,7 +9908,7 @@ function showSlide(index) {
     const isNextUnlocked = (index + 1) < slidesData.length && isSlideUnlocked(index + 1, u);
     
     btnPrev.disabled = index === 0;
-    btnNext.disabled = (index === slidesData.length - 1) || (!completedSlides[index]) || (!isNextUnlocked);
+    btnNext.disabled = (index === slidesData.length - 1) || (!isNextUnlocked);
 
     sidebarLinks.forEach(link => {
         if (parseInt(link.getAttribute('data-slide')) === index) {
@@ -10051,12 +10051,7 @@ function setupKeyboardControls() {
                 nextSlide();
             } else if (nextIdx < slidesData.length) {
                 const nextMod = getSlideModuleName(nextIdx);
-                const isModLocked = u && u.unlockedModules && !u.unlockedModules[nextMod];
-                if (isModLocked) {
-                    alert(`🔒 Agla module (${nextMod}) aapke instructor/admin dwara locked hai!`);
-                } else {
-                    alert("🔒 Agla level unlock karne ke liye pehle is slide ko 'Pura Kiya (Completed)' checkmark mark karein!");
-                }
+                alert(`🔒 Agla module (${nextMod}) aapke instructor/admin dwara locked hai!`);
             }
         } else if (e.key === 'ArrowLeft') {
             prevSlide();
@@ -10309,7 +10304,7 @@ window.toggleSlideCompletion = function() {
     let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
     const u = currentUser ? users[currentUser] : null;
     const isNextUnlocked = (currentSlideIndex + 1) < slidesData.length && isSlideUnlocked(currentSlideIndex + 1, u);
-    btnNext.disabled = (currentSlideIndex === slidesData.length - 1) || (!checkbox.checked) || (!isNextUnlocked);
+    btnNext.disabled = (currentSlideIndex === slidesData.length - 1) || (!isNextUnlocked);
     
     saveStudentProgress();
 };
@@ -11863,14 +11858,6 @@ window.isSlideUnlocked = function(index, u) {
     if (!u) return false;
     const moduleName = getSlideModuleName(index);
     
-    // If the module itself is locked, this slide is locked!
-    if (!u.unlockedModules || !u.unlockedModules[moduleName]) return false;
-    
-    // Progressive Lock within the module
-    if (index === 0) return true;
-    
-    const prevModuleName = getSlideModuleName(index - 1);
-    if (moduleName !== prevModuleName) return true; // Start of a new module is unlocked by default
-    
-    return u.completedSlides && u.completedSlides[index - 1] === true;
+    // If the module itself is unlocked, ALL slides inside it are unlocked!
+    return !!(u.unlockedModules && u.unlockedModules[moduleName] === true);
 };
