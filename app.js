@@ -1,3 +1,17 @@
+// Intercept global fetch to redirect API calls to the Hostinger live backend
+(function() {
+    const originalFetch = window.fetch;
+    window.fetch = function(input, init) {
+        if (typeof input === 'string' && input.startsWith('/api/')) {
+            const apiBase = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+                ? ''
+                : 'https://magenta-kangaroo-461415.hostingersite.com';
+            input = apiBase + input;
+        }
+        return originalFetch(input, init);
+    };
+})();
+
 /* Slide Data Base containing Dual Language (English + Hinglish) Explanations */
 let slidesData = [
     {

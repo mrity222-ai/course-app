@@ -315,6 +315,126 @@ const DB = {
 
 // --- API ROUTE ENDPOINTS ---
 
+app.get('/', (req, res) => {
+    res.send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>codewith_ai Backend Service</title>
+            <style>
+                body {
+                    background: #0f172a;
+                    color: #cbd5e1;
+                    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
+                    margin: 0;
+                }
+                .card {
+                    background: rgba(30, 41, 59, 0.7);
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    border-radius: 12px;
+                    padding: 2.5rem;
+                    text-align: center;
+                    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+                    backdrop-filter: blur(12px);
+                    max-width: 400px;
+                    width: 90%;
+                }
+                h1 {
+                    color: #38bdf8;
+                    font-size: 1.8rem;
+                    margin-top: 0;
+                    margin-bottom: 0.5rem;
+                }
+                p {
+                    font-size: 0.95rem;
+                    color: #94a3b8;
+                    margin-bottom: 1.5rem;
+                }
+                .status-badge {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    background: rgba(16, 185, 129, 0.1);
+                    border: 1px solid rgba(16, 185, 129, 0.2);
+                    color: #34d399;
+                    padding: 0.4rem 0.8rem;
+                    border-radius: 9999px;
+                    font-size: 0.8rem;
+                    font-weight: bold;
+                }
+                .status-dot {
+                    width: 8px;
+                    height: 8px;
+                    background-color: #10b981;
+                    border-radius: 50%;
+                    box-shadow: 0 0 8px #10b981;
+                    animation: pulse 1.5s infinite;
+                }
+                @keyframes pulse {
+                    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+                    70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+                    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+                }
+                .info-box {
+                    text-align: left;
+                    background: rgba(0, 0, 0, 0.2);
+                    padding: 1rem;
+                    border-radius: 8px;
+                    font-size: 0.8rem;
+                    font-family: monospace;
+                    margin-top: 1.5rem;
+                    border: 1px solid rgba(255, 255, 255, 0.03);
+                }
+                .info-line {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 0.25rem;
+                }
+                .info-line:last-child {
+                    margin-bottom: 0;
+                }
+                .label { color: #64748b; }
+                .value { color: #f1f5f9; }
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <h1>codewith_ai</h1>
+                <p>Backend API Engine Service</p>
+                <div class="status-badge">
+                    <span class="status-dot"></span>
+                    <span>SERVER IS LIVE</span>
+                </div>
+                <div class="info-box">
+                    <div class="info-line">
+                        <span class="label">Status:</span>
+                        <span class="value" style="color: #34d399;">Running</span>
+                    </div>
+                    <div class="info-line">
+                        <span class="label">Database:</span>
+                        <span class="value">${isMySQL ? 'MySQL' : 'JSON DB (Local)'}</span>
+                    </div>
+                    <div class="info-line">
+                        <span class="label">Port:</span>
+                        <span class="value">${process.env.PORT || 3000}</span>
+                    </div>
+                    <div class="info-line">
+                        <span class="label">Platform:</span>
+                        <span class="value">Express + Node.js</span>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+    `);
+});
+
 // Auth Endpoints
 app.post('/api/auth/register', async (req, res) => {
     try {

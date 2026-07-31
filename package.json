@@ -2,7 +2,7 @@
   "name": "codewith-ai-app",
   "version": "1.0.0",
   "description": "Desktop Application for codewith_ai Web Dev Course Hub",
-  "main": "main.js",
+  "main": "server.js",
   "scripts": {
     "start": "electron .",
     "server": "node server.js",
@@ -18,8 +18,8 @@
     "mysql2": "^3.9.7"
   },
   "devDependencies": {
-    "electron": "^31.0.0",
-    "electron-packager": "^17.1.2",
+    "@electron/packager": "^20.0.4",
+    "electron": "^43.2.0",
     "pdf-parse": "^2.4.5"
   }
 }
