@@ -11578,6 +11578,10 @@ window.loadStudentSession = async function() {
                 const unlockedModules = u.unlockedModules || {};
                 const hasUnlockedAny = Object.values(unlockedModules).some(val => val === true) || u.role === 'admin';
                 
+                const header = document.querySelector('.app-header');
+                const mainContainer = document.querySelector('.main-container');
+                if (header) header.style.display = 'flex';
+                if (mainContainer) mainContainer.style.display = 'flex';
                 if (authGate) authGate.style.display = 'none';
                 if (sessionUser) sessionUser.innerText = `👤 ${currentUser}`;
                 
@@ -11659,6 +11663,10 @@ window.loadStudentSession = async function() {
                 
             } else {
                 localStorage.removeItem('codewith_ai_currentUser');
+                const header = document.querySelector('.app-header');
+                const mainContainer = document.querySelector('.main-container');
+                if (header) header.style.display = 'none';
+                if (mainContainer) mainContainer.style.display = 'none';
                 if (authGate) authGate.style.display = 'flex';
             }
         } catch (e) {
@@ -11668,6 +11676,10 @@ window.loadStudentSession = async function() {
     }
     
     // Default locked guest state
+    const header = document.querySelector('.app-header');
+    const mainContainer = document.querySelector('.main-container');
+    if (header) header.style.display = 'none';
+    if (mainContainer) mainContainer.style.display = 'none';
     if (authGate) authGate.style.display = 'flex';
     if (sessionUser) sessionUser.innerText = `👤 Guest`;
     if (slideCard) slideCard.style.display = 'block';
@@ -11746,6 +11758,12 @@ window.logoutStudent = function() {
         nav.style.pointerEvents = 'auto';
         nav.style.opacity = '1';
     }
+    
+    // Hide header and main container
+    const header = document.querySelector('.app-header');
+    const mainContainer = document.querySelector('.main-container');
+    if (header) header.style.display = 'none';
+    if (mainContainer) mainContainer.style.display = 'none';
     
     // Show auth gate
     const authGate = document.getElementById('student-auth-gate');
