@@ -10668,6 +10668,7 @@ window.openAdminModal = function() {
     if (isAdmin) {
         document.getElementById('admin-dashboard-modal').classList.add('active');
         renderAdminCoursesList();
+        if (typeof renderAdminStudentsList === 'function') renderAdminStudentsList();
     } else {
         document.getElementById('admin-login-modal').classList.add('active');
     }
@@ -11231,6 +11232,9 @@ window.handleAuthSubmit = function() {
         updateDashboard();
         updateXPBar();
         renderContributionGrid();
+
+        // Check for alerts
+        checkStudentAlerts();
     }
 };
 
@@ -11252,6 +11256,9 @@ window.loadStudentSession = function() {
             
             if (authGate) authGate.style.display = 'none';
             if (sessionUser) sessionUser.innerText = `👤 ${currentUser}`;
+            
+            // Check alerts
+            checkStudentAlerts();
             return;
         }
     }
@@ -11303,4 +11310,238 @@ window.logoutStudent = function() {
     updateDashboard();
     updateXPBar();
     renderContributionGrid();
+};
+
+/* --- Admin Control Center Tabs & Student Tracking --- */
+window.switchAdminTab = function(tab) {
+    const btnCourses = document.getElementById('btn-admin-tab-courses');
+    const btnStudents = document.getElementById('btn-admin-tab-students');
+    const contentCourses = document.getElementById('admin-courses-tab-content');
+    const contentStudents = document.getElementById('admin-students-tab-content');
+    
+    if (tab === 'courses') {
+        btnCourses.style.background = 'var(--accent-blue)';
+        btnCourses.style.color = 'black';
+        btnStudents.style.background = 'transparent';
+        btnStudents.style.color = 'white';
+        
+        contentCourses.style.display = 'grid';
+        contentStudents.style.display = 'none';
+        renderAdminCoursesList();
+    } else {
+        btnStudents.style.background = 'var(--accent-blue)';
+        btnStudents.style.color = 'black';
+        btnCourses.style.background = 'transparent';
+        btnCourses.style.color = 'white';
+        
+        contentCourses.style.display = 'none';
+        contentStudents.style.display = 'flex';
+        renderAdminStudentsList();
+    }
+};
+
+window.renderAdminStudentsList = function() {
+    const container = document.getElementById('admin-students-list-container');
+    const selectTarget = document.getElementById('admin-target-student');
+    if (!container || !selectTarget) return;
+    
+    const users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
+    const userKeys = Object.keys(users);
+    
+    // Reset Target Dropdown options
+    selectTarget.innerHTML = '<option value="">-- Choose Student --</option>';
+    
+    if (userKeys.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 2rem; color: #94a3b8; font-size: 0.85rem; border: 1px dashed rgba(255,255,255,0.1); border-radius: 6px;">
+                Abhi tak koi bhi student register nahi hua hai.
+            </div>
+        `;
+        return;
+    }
+    
+    let tableRows = userKeys.map(username => {
+        const u = users[username];
+        
+        // Calculate completion percentage
+        const total = slidesData.length;
+        let completedCount = 0;
+        if (u.completedSlides) {
+            Object.keys(u.completedSlides).forEach(k => {
+                if (u.completedSlides[k]) completedCount++;
+            });
+        }
+        const pct = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+        
+        // Populate target dropdown option
+        const opt = document.createElement('option');
+        opt.value = username;
+        opt.innerText = username;
+        selectTarget.appendChild(opt);
+        
+        return `
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 6px; display: flex; flex-direction: column; gap: 0.5rem; text-align: left; font-size: 0.8rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.25rem;">
+                    <span style="font-weight:bold; color:#ffffff; font-size: 0.9rem;">👤 ${username}</span>
+                    <span style="color:#94a3b8; font-size: 0.75rem;">${u.email || "No Email"}</span>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:0.5rem; color:#cbd5e1; font-size: 0.75rem;">
+                    <div>Level: <span style="color:#c084fc; font-weight:bold;">${u.studentLevel || 1}</span></div>
+                    <div>XP: <span style="color:#a855f7; font-weight:bold;">${u.studentXP || 0}</span></div>
+                    <div>Progress: <span style="color:#10b981; font-weight:bold;">${pct}%</span></div>
+                </div>
+                <div style="color: #94a3b8; font-size: 0.75rem;">
+                    Last Active Slide: <span style="color: #38bdf8;">Slide ${(u.currentSlideIndex || 0) + 1} (${slidesData[u.currentSlideIndex || 0]?.title || "HTML"})</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = tableRows;
+};
+
+window.sendAdminNotification = function() {
+    const student = document.getElementById('admin-target-student').value;
+    const alertText = document.getElementById('admin-alert-text').value.trim();
+    const taskText = document.getElementById('admin-task-text').value.trim();
+    const statusDiv = document.getElementById('admin-notif-status');
+    
+    if (!student) {
+        alert("Pehle target student ko select karein!");
+        return;
+    }
+    
+    if (!alertText && !taskText) {
+        alert("Kripya koi alert message ya homework task enter karein!");
+        return;
+    }
+    
+    let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
+    if (users[student]) {
+        // Initialize notifications blocks if they don't exist
+        if (!users[student].adminAlerts) users[student].adminAlerts = [];
+        if (!users[student].assignedTasks) users[student].assignedTasks = [];
+        
+        if (alertText) {
+            users[student].adminAlerts.push({
+                text: alertText,
+                date: new Date().toLocaleDateString(),
+                read: false
+            });
+        }
+        
+        if (taskText) {
+            users[student].assignedTasks.push({
+                text: taskText,
+                completed: false,
+                date: new Date().toLocaleDateString()
+            });
+        }
+        
+        localStorage.setItem('codewith_ai_users', JSON.stringify(users));
+        
+        // Clear inputs
+        document.getElementById('admin-alert-text').value = '';
+        document.getElementById('admin-task-text').value = '';
+        
+        if (statusDiv) {
+            statusDiv.innerText = `✓ Successfully sent to ${student}!`;
+            statusDiv.style.display = 'block';
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 2500);
+        }
+        
+        // If the admin themselves is currently logged in as that student in another tab, update instantly
+        if (localStorage.getItem('codewith_ai_currentUser') === student) {
+            loadStudentSession();
+        }
+    }
+};
+
+window.checkStudentAlerts = function() {
+    const currentUser = localStorage.getItem('codewith_ai_currentUser');
+    if (!currentUser) return;
+    
+    const users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
+    const u = users[currentUser];
+    if (!u) return;
+    
+    const alertsContent = document.getElementById('student-alerts-content');
+    const tasksContent = document.getElementById('student-tasks-content');
+    const alertsModal = document.getElementById('student-alerts-modal');
+    
+    // Check for unread alerts
+    const alertsList = u.adminAlerts || [];
+    const unreadAlerts = alertsList.filter(a => !a.read);
+    
+    // Check for assigned tasks
+    const tasksList = u.assignedTasks || [];
+    
+    if (unreadAlerts.length === 0 && tasksList.length === 0) return;
+    
+    if (alertsContent) {
+        if (unreadAlerts.length > 0) {
+            alertsContent.parentElement.querySelector('h3').style.display = 'block';
+            alertsContent.style.display = 'block';
+            alertsContent.innerHTML = unreadAlerts.map(a => `
+                <div style="margin-bottom:0.5rem; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:0.5rem;">
+                    <span style="font-size:0.7rem; color:var(--accent-blue); display:block; font-weight:bold;">${a.date}</span>
+                    <span>${a.text}</span>
+                </div>
+            `).join('');
+        } else {
+            alertsContent.style.display = 'none';
+            alertsContent.parentElement.querySelector('h3').style.display = 'none';
+        }
+    }
+    
+    if (tasksContent) {
+        if (tasksList.length > 0) {
+            tasksContent.parentElement.querySelector('h4').style.display = 'block';
+            tasksContent.style.display = 'flex';
+            tasksContent.innerHTML = tasksList.map((t, idx) => `
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="${t.completed ? 'text-decoration: line-through; color:#94a3b8;' : 'color:#ffffff;'}">${idx + 1}. ${t.text}</span>
+                    <button onclick="toggleAssignedTaskCompletion(${idx})" class="console-clear-btn" style="background:${t.completed ? '#10b981' : 'transparent'}; border-color:${t.completed ? '#10b981' : 'rgba(255,255,255,0.2)'}; color:${t.completed ? 'black' : 'white'}; padding:0.15rem 0.4rem; font-size:0.7rem; font-weight:bold;">
+                        ${t.completed ? "✓ Done" : "Mark Done"}
+                    </button>
+                </div>
+            `).join('');
+        } else {
+            tasksContent.style.display = 'none';
+            tasksContent.parentElement.querySelector('h4').style.display = 'none';
+        }
+    }
+    
+    // Only show if there are unread warnings OR if they have tasks to view
+    if (alertsModal) alertsModal.classList.add('active');
+};
+
+window.toggleAssignedTaskCompletion = function(idx) {
+    const currentUser = localStorage.getItem('codewith_ai_currentUser');
+    if (!currentUser) return;
+    
+    let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
+    if (users[currentUser] && users[currentUser].assignedTasks) {
+        const isCompleted = users[currentUser].assignedTasks[idx].completed;
+        users[currentUser].assignedTasks[idx].completed = !isCompleted;
+        localStorage.setItem('codewith_ai_users', JSON.stringify(users));
+        
+        // Refresh Alerts list
+        checkStudentAlerts();
+    }
+};
+
+window.closeStudentAlertsModal = function() {
+    const currentUser = localStorage.getItem('codewith_ai_currentUser');
+    if (currentUser) {
+        let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
+        if (users[currentUser] && users[currentUser].adminAlerts) {
+            // Mark all alerts as read so it doesn't pop up again next load
+            users[currentUser].adminAlerts.forEach(a => a.read = true);
+            localStorage.setItem('codewith_ai_users', JSON.stringify(users));
+        }
+    }
+    document.getElementById('student-alerts-modal').classList.remove('active');
 };
