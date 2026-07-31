@@ -9967,8 +9967,7 @@ function showSlide(index) {
     progressBar.style.width = `${progressPercent}%`;
 
     const currentUser = localStorage.getItem('codewith_ai_currentUser');
-    let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
-    const u = currentUser ? users[currentUser] : null;
+    const u = currentUser ? window.currentUserObj : null;
     
     btnPrev.disabled = index === 0;
     
@@ -10125,8 +10124,7 @@ function setupKeyboardControls() {
         if (e.key === 'ArrowRight') {
             const nextIdx = currentSlideIndex + 1;
             const currentUser = localStorage.getItem('codewith_ai_currentUser');
-            let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
-            const u = currentUser ? users[currentUser] : null;
+            const u = currentUser ? window.currentUserObj : null;
             
             if (typeof activeSlideTimeLeft !== 'undefined' && activeSlideTimeLeft > 0) {
                 const hasSandbox = !!slidesData[currentSlideIndex]?.sandboxCode;
@@ -10389,8 +10387,7 @@ window.toggleSlideCompletion = function() {
     
     // Dynamically update next button state
     const currentUser = localStorage.getItem('codewith_ai_currentUser');
-    let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
-    const u = currentUser ? users[currentUser] : null;
+    const u = currentUser ? window.currentUserObj : null;
     const isNextUnlocked = (currentSlideIndex + 1) < slidesData.length && isSlideUnlocked(currentSlideIndex + 1, u);
     btnNext.disabled = (currentSlideIndex === slidesData.length - 1) || (!isNextUnlocked) || (typeof activeSlideTimeLeft !== 'undefined' && activeSlideTimeLeft > 0);
     
@@ -11926,34 +11923,56 @@ window.renderAdminStudentsList = async function() {
     container.innerHTML = tableRows;
 };
 
-window.toggleModuleLockForStudent = function(username, moduleName) {
-    let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
-    if (users[username]) {
-        if (!users[username].unlockedModules) {
-            users[username].unlockedModules = {};
+window.toggleModuleLockForStudent = async function(username, moduleName) {
+    try {
+        const res = await fetch(`/api/progress/get?username=${encodeURIComponent(username)}`);
+        if (res.ok) {
+            const u = await res.json();
+            u.unlockedModules = u.unlockedModules || {};
+            u.unlockedModules[moduleName] = !(u.unlockedModules[moduleName] === true);
+            
+            await fetch('/api/progress/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: username,
+                    unlockedModules: u.unlockedModules
+                })
+            });
+            
+            await renderAdminStudentsList();
+            
+            if (localStorage.getItem('codewith_ai_currentUser') === username) {
+                await loadStudentSession();
+                updateSidebarLocks();
+            }
         }
-        
-        const isCurrentUnlocked = users[username].unlockedModules[moduleName] === true;
-        users[username].unlockedModules[moduleName] = !isCurrentUnlocked;
-        
-        // If they unlocked at least one module, clear request status
-        const hasUnlocked = Object.values(users[username].unlockedModules).some(val => val === true);
-        if (hasUnlocked) {
-            users[username].unlockRequested = false;
-        }
-        
-        localStorage.setItem('codewith_ai_users', JSON.stringify(users));
-        renderAdminStudentsList();
-        
-        // Refresh active student session view instantly if active in this browser
-        if (localStorage.getItem('codewith_ai_currentUser') === username) {
-            loadStudentSession();
-            updateSidebarLocks();
-        }
+    } catch (e) {
+        console.error("Error toggling student module lock:", e);
     }
 };
 
-window.sendAdminNotification = function() {
+window.recordSlideTimeSpent = function() {
+    const currentUser = localStorage.getItem('codewith_ai_currentUser');
+    if (!currentUser) return;
+    
+    const now = Date.now();
+    const secondsSpent = Math.round((now - slideStartTime) / 1000);
+    
+    if (secondsSpent > 1) { // Ignore rapid glitch clicks < 1s
+        const existingTime = activityLog[currentSlideIndex] || 0;
+        activityLog[currentSlideIndex] = existingTime + secondsSpent;
+        saveStudentProgress();
+    }
+    
+    slideStartTime = now;
+};
+
+window.addEventListener('beforeunload', () => {
+    recordSlideTimeSpent();
+});
+
+window.sendAdminNotification = async function() {
     const student = document.getElementById('admin-target-student').value;
     const alertText = document.getElementById('admin-alert-text').value.trim();
     const taskText = document.getElementById('admin-task-text').value.trim();
@@ -11969,29 +11988,22 @@ window.sendAdminNotification = function() {
         return;
     }
     
-    let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
-    if (users[student]) {
-        // Initialize notifications blocks if they don't exist
-        if (!users[student].adminAlerts) users[student].adminAlerts = [];
-        if (!users[student].assignedTasks) users[student].assignedTasks = [];
-        
+    try {
         if (alertText) {
-            users[student].adminAlerts.push({
-                text: alertText,
-                date: new Date().toLocaleDateString(),
-                read: false
+            await fetch('/api/admin/alert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: student, alertText: alertText })
             });
         }
         
         if (taskText) {
-            users[student].assignedTasks.push({
-                text: taskText,
-                completed: false,
-                date: new Date().toLocaleDateString()
+            await fetch('/api/admin/task', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: student, taskText: taskText })
             });
         }
-        
-        localStorage.setItem('codewith_ai_users', JSON.stringify(users));
         
         // Clear inputs
         document.getElementById('admin-alert-text').value = '';
@@ -12005,10 +12017,11 @@ window.sendAdminNotification = function() {
             }, 2500);
         }
         
-        // If the admin themselves is currently logged in as that student in another tab, update instantly
         if (localStorage.getItem('codewith_ai_currentUser') === student) {
-            loadStudentSession();
+            await loadStudentSession();
         }
+    } catch (e) {
+        console.error("Error sending admin notifications:", e);
     }
 };
 
@@ -12016,32 +12029,26 @@ window.checkStudentAlerts = function(forceShow = false) {
     const currentUser = localStorage.getItem('codewith_ai_currentUser');
     if (!currentUser) return;
     
-    const users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
-    const u = users[currentUser];
+    const u = window.currentUserObj;
     if (!u) return;
     
     const alertsContent = document.getElementById('student-alerts-content');
     const tasksContent = document.getElementById('student-tasks-content');
     const alertsModal = document.getElementById('student-alerts-modal');
     
-    // Check for alerts
-    const alertsList = u.adminAlerts || [];
-    const unreadAlerts = alertsList.filter(a => !a.read);
-    const alertsToDisplay = forceShow ? alertsList : unreadAlerts;
+    const alertsList = u.alerts || [];
+    const tasksList = u.tasks || [];
     
-    // Check for assigned tasks
-    const tasksList = u.assignedTasks || [];
-    
-    if (unreadAlerts.length === 0 && tasksList.length === 0 && !forceShow) return;
+    if (alertsList.length === 0 && tasksList.length === 0 && !forceShow) return;
     
     if (alertsContent) {
-        if (alertsToDisplay.length > 0) {
+        if (alertsList.length > 0) {
             alertsContent.parentElement.querySelector('h3').style.display = 'block';
             alertsContent.style.display = 'block';
-            alertsContent.innerHTML = alertsToDisplay.map(a => `
+            alertsContent.innerHTML = alertsList.map(a => `
                 <div style="margin-bottom:0.5rem; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:0.5rem;">
-                    <span style="font-size:0.7rem; color:var(--accent-blue); display:block; font-weight:bold;">${a.date}</span>
-                    <span>${a.text}</span>
+                    <span style="font-size:0.7rem; color:var(--accent-blue); display:block; font-weight:bold;">Message</span>
+                    <span>${a}</span>
                 </div>
             `).join('');
         } else {
@@ -12062,9 +12069,9 @@ window.checkStudentAlerts = function(forceShow = false) {
             tasksContent.style.display = 'flex';
             tasksContent.innerHTML = tasksList.map((t, idx) => `
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="${t.completed ? 'text-decoration: line-through; color:#94a3b8;' : 'color:#ffffff;'}">${idx + 1}. ${t.text}</span>
-                    <button onclick="toggleAssignedTaskCompletion(${idx})" class="console-clear-btn" style="background:${t.completed ? '#10b981' : 'transparent'}; border-color:${t.completed ? '#10b981' : 'rgba(255,255,255,0.2)'}; color:${t.completed ? 'black' : 'white'}; padding:0.15rem 0.4rem; font-size:0.7rem; font-weight:bold;">
-                        ${t.completed ? "✓ Done" : "Mark Done"}
+                    <span style="color:#ffffff;">${idx + 1}. ${t}</span>
+                    <button onclick="toggleAssignedTaskCompletion(${idx})" class="console-clear-btn" style="background:transparent; border-color:rgba(255,255,255,0.2); color:white; padding:0.15rem 0.4rem; font-size:0.7rem; font-weight:bold;">
+                        Delete
                     </button>
                 </div>
             `).join('');
@@ -12083,29 +12090,41 @@ window.checkStudentAlerts = function(forceShow = false) {
     if (alertsModal) alertsModal.classList.add('active');
 };
 
-window.toggleAssignedTaskCompletion = function(idx) {
+window.toggleAssignedTaskCompletion = async function(idx) {
     const currentUser = localStorage.getItem('codewith_ai_currentUser');
     if (!currentUser) return;
     
-    let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
-    if (users[currentUser] && users[currentUser].assignedTasks) {
-        const isCompleted = users[currentUser].assignedTasks[idx].completed;
-        users[currentUser].assignedTasks[idx].completed = !isCompleted;
-        localStorage.setItem('codewith_ai_users', JSON.stringify(users));
-        
-        // Refresh Alerts list
-        checkStudentAlerts();
+    const u = window.currentUserObj;
+    if (u && u.tasks) {
+        u.tasks.splice(idx, 1);
+        try {
+            await fetch('/api/progress/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: currentUser, tasks: u.tasks })
+            });
+            checkStudentAlerts(true);
+        } catch (e) {
+            console.error(e);
+        }
     }
 };
 
-window.closeStudentAlertsModal = function() {
+window.closeStudentAlertsModal = async function() {
     const currentUser = localStorage.getItem('codewith_ai_currentUser');
     if (currentUser) {
-        let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
-        if (users[currentUser] && users[currentUser].adminAlerts) {
-            // Mark all alerts as read so it doesn't pop up again next load
-            users[currentUser].adminAlerts.forEach(a => a.read = true);
-            localStorage.setItem('codewith_ai_users', JSON.stringify(users));
+        const u = window.currentUserObj;
+        if (u && u.alerts && u.alerts.length > 0) {
+            u.alerts = [];
+            try {
+                await fetch('/api/progress/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: currentUser, alerts: [] })
+                });
+            } catch (e) {
+                console.error(e);
+            }
         }
     }
     document.getElementById('student-alerts-modal').classList.remove('active');
@@ -12114,8 +12133,7 @@ window.closeStudentAlertsModal = function() {
 /* --- Granular Accordion Header Locking Helper --- */
 window.updateSidebarLocks = function() {
     const currentUser = localStorage.getItem('codewith_ai_currentUser');
-    let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
-    const u = currentUser ? users[currentUser] : null;
+    const u = currentUser ? window.currentUserObj : null;
     
     const accordionItems = document.querySelectorAll('.accordion-item');
     accordionItems.forEach((item, idx) => {
@@ -12179,7 +12197,7 @@ window.updateSidebarLocks = function() {
     });
     
     // Clear all progressive lock classes and padlock icons from subheadings inside
-    sidebarLinks = document.querySelectorAll('.slide-link');
+    const sidebarLinks = document.querySelectorAll('.slide-link');
     sidebarLinks.forEach(link => {
         link.classList.remove('locked-sequence');
         if (link.innerHTML.includes('🔒')) {
@@ -12188,18 +12206,21 @@ window.updateSidebarLocks = function() {
     });
 };
 
-/* --- Request Admin Unlock API --- */
-window.requestAdminUnlock = function() {
+window.requestAdminUnlock = async function() {
     const currentUser = localStorage.getItem('codewith_ai_currentUser');
     if (!currentUser) return;
     
-    let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
-    if (users[currentUser]) {
-        users[currentUser].unlockRequested = true;
-        localStorage.setItem('codewith_ai_users', JSON.stringify(users));
+    try {
+        await fetch('/api/progress/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: currentUser, unlockRequested: true })
+        });
         
         // Rerender lock screen components
-        loadStudentSession();
+        await loadStudentSession();
+    } catch (e) {
+        console.error("Error requesting unlock:", e);
     }
 };
 
@@ -12208,8 +12229,7 @@ window.contactAdminWhatsApp = function() {
     const currentUser = localStorage.getItem('codewith_ai_currentUser');
     if (!currentUser) return;
     
-    let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
-    const u = users[currentUser] || {};
+    const u = window.currentUserObj || {};
     
     // Obfuscate phone number components to block web scraper bots
     const country = "9" + "1";
@@ -12291,34 +12311,12 @@ window.addEventListener('storage', (e) => {
 /* --- Slide Reading Duration Auditing Engine --- */
 let slideStartTime = Date.now();
 
-window.recordSlideTimeSpent = function() {
-    const currentUser = localStorage.getItem('codewith_ai_currentUser');
-    if (!currentUser) return;
-    
-    const now = Date.now();
-    const secondsSpent = Math.round((now - slideStartTime) / 1000);
-    
-    if (secondsSpent > 1) { // Ignore rapid glitch clicks < 1s
-        let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
-        const u = users[currentUser];
-        if (u) {
-            if (!u.slideTimeSpent) u.slideTimeSpent = {};
-            const existingTime = u.slideTimeSpent[currentSlideIndex] || 0;
-            u.slideTimeSpent[currentSlideIndex] = existingTime + secondsSpent;
-            
-            // Record last active timestamp
-            u.lastActiveTimestamp = now;
-            
-            users[currentUser] = u;
-            localStorage.setItem('codewith_ai_users', JSON.stringify(users));
-        }
-    }
-    
-    slideStartTime = now;
-};
+// (Note: recordSlideTimeSpent is now declared earlier near sync logic)
 
 window.addEventListener('beforeunload', () => {
-    recordSlideTimeSpent();
+    if (typeof recordSlideTimeSpent === 'function') {
+        recordSlideTimeSpent();
+    }
 });
 
 /* --- Slide Completion Locked Countdown Timer Engine --- */
@@ -12340,15 +12338,14 @@ window.initializeSlideTimer = function(index) {
         return;
     }
     
-    let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
-    const u = users[currentUser];
+    const u = window.currentUserObj;
     if (!u) return;
     
     const slide = slidesData[index];
     const hasSandbox = !!(slide && slide.sandboxCode);
     const requiredDuration = hasSandbox ? 300 : 120; // 5 mins (300s) vs 2 mins (120s)
     
-    const spentSoFar = (u.slideTimeSpent && u.slideTimeSpent[index]) || 0;
+    const spentSoFar = (typeof activityLog !== 'undefined' && activityLog[index]) || 0;
     window.activeSlideTimeLeft = Math.max(0, requiredDuration - spentSoFar);
     
     if (window.activeSlideTimeLeft > 0) {
