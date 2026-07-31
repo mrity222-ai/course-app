@@ -10001,6 +10001,28 @@ function showSlide(index) {
         sandboxContainer.style.display = 'none';
     }
 
+    // Reload video if drawer is visible
+    const videoPane = document.getElementById('slide-video-pane');
+    const videoIframe = document.getElementById('slide-video-iframe');
+    const videoBtn = document.getElementById('btn-toggle-video');
+    const videoUrl = typeof getSlideVideoUrl === 'function' ? getSlideVideoUrl(index) : '';
+    
+    if (videoBtn) {
+        if (videoUrl) {
+            videoBtn.style.display = 'inline-flex';
+        } else {
+            videoBtn.style.display = 'none';
+            if (videoPane) videoPane.style.display = 'none';
+            if (videoIframe) videoIframe.src = '';
+        }
+    }
+    
+    if (videoPane && videoPane.style.display === 'flex' && videoUrl) {
+        if (videoIframe && videoIframe.src !== videoUrl) {
+            videoIframe.src = videoUrl;
+        }
+    }
+
     const titleLower = currentSlideData.title.toLowerCase();
     const isPracticeSlide = titleLower.includes('practice') || titleLower.includes('sheet') || titleLower.includes('project');
     if (isPracticeSlide) {
@@ -10805,6 +10827,8 @@ window.startPDFBrowserParsing = async function() {
     const id = document.getElementById('upload-course-id').value.trim().toLowerCase();
     const fileInput = document.getElementById('upload-pdf-file');
     const statusDiv = document.getElementById('admin-upload-status');
+    const videoInput = document.getElementById('upload-course-video');
+    const videoUrl = videoInput ? videoInput.value.trim() : '';
     
     if (!title || !id || !fileInput.files.length) {
         alert("Please fill all fields and select a PDF file.");
@@ -10878,7 +10902,8 @@ window.startPDFBrowserParsing = async function() {
             customCourses.push({
                 title: title,
                 id: id,
-                slides: courseSlides
+                slides: courseSlides,
+                videoUrl: videoUrl
             });
             localStorage.setItem('codewith_ai_custom_courses', JSON.stringify(customCourses));
             
@@ -10894,6 +10919,7 @@ window.startPDFBrowserParsing = async function() {
             
             document.getElementById('upload-course-title').value = '';
             document.getElementById('upload-course-id').value = '';
+            if (videoInput) videoInput.value = '';
             fileInput.value = '';
             
         } catch(err) {
@@ -12165,3 +12191,62 @@ function updateNextButtonTimerDisplay() {
     btnNext.innerHTML = `Aage (Next) (${formatted}) ⏳`;
     btnNext.disabled = true;
 }
+
+/* --- Slide Video Lecture Integration Engine --- */
+window.getSlideVideoUrl = function(index) {
+    const slide = slidesData[index];
+    if (!slide) return '';
+    
+    // Check if slide belongs to a custom course and that custom course has a video url
+    const customMatch = customCourses.find(c => c.slides.includes(slide));
+    if (customMatch && customMatch.videoUrl) {
+        return customMatch.videoUrl;
+    }
+    
+    // Default video lectures mapping for core courses
+    const modName = getSlideModuleName(index);
+    switch(modName) {
+        case "HTML Course":
+            return "https://www.youtube.com/embed/HcOc7P5BMi4";
+        case "CSS Course":
+            return "https://www.youtube.com/embed/yfoY53QXEnI";
+        case "JavaScript Course":
+            return "https://www.youtube.com/embed/W6NZfCO5SIk";
+        case "React Course":
+            return "https://www.youtube.com/embed/Ke90Tje7VS0";
+        case "Backend Course":
+            return "https://www.youtube.com/embed/HXR1Wn3L04o";
+        case "Advanced Backend & AI":
+            return "https://www.youtube.com/embed/1vRzT47l2p8";
+        case "VPS Hosting Guide":
+            return "https://www.youtube.com/embed/HnCVLMV3E2E";
+        case "Next.js Course":
+            return "https://www.youtube.com/embed/ZjAqacLYzQI";
+        default:
+            return ""; // Hide if not matching any
+    }
+};
+
+window.toggleSlideVideoDrawer = function() {
+    const pane = document.getElementById('slide-video-pane');
+    const iframe = document.getElementById('slide-video-iframe');
+    const videoBtn = document.getElementById('btn-toggle-video');
+    if (!pane || !iframe || !videoBtn) return;
+    
+    if (pane.style.display === 'none' || !pane.style.display) {
+        pane.style.display = 'flex';
+        videoBtn.style.background = '#ef4444';
+        videoBtn.style.color = '#ffffff';
+        
+        // Load video source
+        const url = getSlideVideoUrl(currentSlideIndex);
+        iframe.src = url;
+    } else {
+        pane.style.display = 'none';
+        videoBtn.style.background = 'rgba(239, 68, 68, 0.1)';
+        videoBtn.style.color = '#f87171';
+        
+        // Stop playing by clearing source
+        iframe.src = '';
+    }
+};

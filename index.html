@@ -929,10 +929,19 @@
                     <div class="progress-bar" id="progress-bar" style="width: 3.84%;"></div>
                 </div>
                 
-                <!-- Dynamic Slide Contents with Collapsible Notes -->
+                <!-- Dynamic Slide Contents with Collapsible Notes & Video -->
                 <div style="display: flex; gap: 1rem; width: 100%; align-items: stretch; flex-wrap: wrap;">
                     <div id="slides-container" style="flex: 1; min-width: 280px;">
                         <!-- Slides will be rendered here. In Print view, all slides will show simultaneously -->
+                    </div>
+                    <div id="slide-video-pane" style="width: 320px; display: none; flex-direction: column; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; box-sizing: border-box; backdrop-filter: blur(10px);" class="no-print">
+                        <div style="font-size: 0.85rem; font-weight: bold; color: #f87171; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                            <span>🎥 Video Lecture</span>
+                            <button onclick="toggleSlideVideoDrawer()" style="background:none; border:none; color:#ef4444; font-size:0.75rem; cursor:pointer;">Close</button>
+                        </div>
+                        <div style="position: relative; width: 100%; padding-bottom: 56.25%; height: 0; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15);">
+                            <iframe id="slide-video-iframe" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;" src="" title="Video lecture" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                        </div>
                     </div>
                     <div id="slide-notes-pane" style="width: 250px; display: none; flex-direction: column; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); padding: 1rem; border-radius: 8px; box-sizing: border-box;" class="no-print">
                         <div style="font-size: 0.85rem; font-weight: bold; color: var(--accent-blue); margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
@@ -950,6 +959,9 @@
                         Peechhe (Prev)
                     </button>
                     <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" id="btn-toggle-video" onclick="toggleSlideVideoDrawer()" style="padding: 0.5rem 0.75rem; font-size: 0.8rem; border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.1); color: #f87171; display: inline-flex; align-items: center; gap: 4px;">
+                            🎥 Video Class
+                        </button>
                         <button class="btn btn-secondary" onclick="toggleSlideNotes()" style="padding: 0.5rem 0.75rem; font-size: 0.8rem; border-color: rgba(255,255,255,0.15);">
                             📝 Notes
                         </button>
@@ -1115,9 +1127,13 @@
                         <label style="font-size: 0.8rem; color: #cbd5e1; display: block; margin-bottom: 0.25rem;">Unique Course ID</label>
                         <input type="text" id="upload-course-id" placeholder="e.g. python-next" style="width: 100%; padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; box-sizing: border-box;">
                     </div>
-                    <div style="margin-bottom: 1.5rem;">
+                    <div style="margin-bottom: 1rem;">
                         <label style="font-size: 0.8rem; color: #cbd5e1; display: block; margin-bottom: 0.25rem;">Select PDF Document</label>
                         <input type="file" id="upload-pdf-file" accept=".pdf" style="width: 100%; color: #cbd5e1; font-size: 0.8rem;">
+                    </div>
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="font-size: 0.8rem; color: #cbd5e1; display: block; margin-bottom: 0.25rem;">YouTube Video URL (Optional)</label>
+                        <input type="text" id="upload-course-video" placeholder="e.g. https://www.youtube.com/embed/FwFsp03Q5qQ" style="width: 100%; padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; box-sizing: border-box; outline: none;">
                     </div>
                     <button class="modal-btn" style="width: 100%;" id="btn-parse-pdf" onclick="startPDFBrowserParsing()">Parse & Compile PDF</button>
                     
