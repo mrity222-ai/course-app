@@ -11309,6 +11309,31 @@ window.loadStudentSession = function() {
                     document.getElementById('lock-fullname').innerText = u.fullname || '-';
                     document.getElementById('lock-mobile').innerText = u.mobile || '-';
                     document.getElementById('lock-year').innerText = u.year || '-';
+                    
+                    // Setup WhatsApp alert link details
+                    const waBtn = document.getElementById('btn-whatsapp-admin');
+                    if (waBtn) {
+                        const msg = `Hello Admin, Mera name *${u.fullname || currentUser}* hai. Maine codewith_ai par register kiya hai (Username: *${currentUser}*, Mobile: *${u.mobile || ''}*). Kripya mera course access unlock kar dijiye.`;
+                        waBtn.href = `https://wa.me/919999999999?text=${encodeURIComponent(msg)}`;
+                    }
+                    
+                    // Setup Request Unlock button status
+                    const reqBtn = document.getElementById('btn-request-unlock');
+                    if (reqBtn) {
+                        if (u.unlockRequested) {
+                            reqBtn.innerText = "✓ Request Sent!";
+                            reqBtn.disabled = true;
+                            reqBtn.style.background = "rgba(255,255,255,0.15)";
+                            reqBtn.style.color = "rgba(255,255,255,0.4)";
+                            reqBtn.style.cursor = "not-allowed";
+                        } else {
+                            reqBtn.innerText = "📧 Request Unlock";
+                            reqBtn.disabled = false;
+                            reqBtn.style.background = "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)";
+                            reqBtn.style.color = "white";
+                            reqBtn.style.cursor = "pointer";
+                        }
+                    }
                 }
                 if (nav) {
                     nav.style.pointerEvents = 'none';
@@ -11422,6 +11447,13 @@ window.renderAdminStudentsList = function() {
     const users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
     const userKeys = Object.keys(users);
     
+    // Sort keys so that those with unlockRequested === true AND unlocked !== true go to the very top!
+    userKeys.sort((a, b) => {
+        const reqA = users[a].unlockRequested && !users[a].unlocked ? 1 : 0;
+        const reqB = users[b].unlockRequested && !users[b].unlocked ? 1 : 0;
+        return reqB - reqA;
+    });
+    
     // Reset Target Dropdown options
     selectTarget.innerHTML = '<option value="">-- Choose Student --</option>';
     
@@ -11455,15 +11487,21 @@ window.renderAdminStudentsList = function() {
         
         const lockBtnText = u.unlocked ? "🔒 Lock Course" : "🔓 Unlock Course";
         const lockBtnBg = u.unlocked ? "#ef4444" : "#10b981";
-        const statusBadge = u.unlocked 
+        
+        let statusBadge = u.unlocked 
             ? `<span style="color:#10b981; font-weight:bold; font-size:0.75rem; background:rgba(16,185,129,0.1); padding:2px 6px; border-radius:4px;">🔓 Unlocked</span>` 
             : `<span style="color:#ef4444; font-weight:bold; font-size:0.75rem; background:rgba(239,68,68,0.1); padding:2px 6px; border-radius:4px;">🔒 Locked</span>`;
+            
+        // Show glowing requested unlock badge if they clicked "Request Unlock"
+        if (u.unlockRequested && !u.unlocked) {
+            statusBadge += `<span style="color:#ffffff; font-weight:bold; font-size:0.7rem; background:#f59e0b; padding:2px 6px; border-radius:4px; margin-left:5px; animation: pulse 1s infinite;">⚠️ REQ ACCESS</span>`;
+        }
         
         return `
             <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 6px; display: flex; flex-direction: column; gap: 0.5rem; text-align: left; font-size: 0.8rem;">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.25rem;">
                     <span style="font-weight:bold; color:#ffffff; font-size: 0.9rem;">👤 ${username}</span>
-                    ${statusBadge}
+                    <div style="display:flex; align-items:center; gap:2px;">${statusBadge}</div>
                 </div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.4rem; color:#cbd5e1; font-size: 0.75rem; background:rgba(0,0,0,0.15); padding:0.5rem; border-radius:4px;">
                     <div><b>Name:</b> ${u.fullname || username}</div>
@@ -11493,6 +11531,9 @@ window.toggleStudentLock = function(username) {
     let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
     if (users[username]) {
         users[username].unlocked = !users[username].unlocked;
+        if (users[username].unlocked) {
+            users[username].unlockRequested = false; // Reset unlock request flag
+        }
         localStorage.setItem('codewith_ai_users', JSON.stringify(users));
         renderAdminStudentsList();
         
@@ -11677,4 +11718,19 @@ window.updateSidebarLocks = function() {
             link.classList.add('locked-sequence');
         }
     });
+};
+
+/* --- Request Admin Unlock API --- */
+window.requestAdminUnlock = function() {
+    const currentUser = localStorage.getItem('codewith_ai_currentUser');
+    if (!currentUser) return;
+    
+    let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
+    if (users[currentUser]) {
+        users[currentUser].unlockRequested = true;
+        localStorage.setItem('codewith_ai_users', JSON.stringify(users));
+        
+        // Rerender lock screen components
+        loadStudentSession();
+    }
 };
