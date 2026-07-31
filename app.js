@@ -12370,8 +12370,7 @@ window.initializeSlideTimer = function(index) {
     if (!u) return;
     
     const slide = slidesData[index];
-    const hasSandbox = !!(slide && slide.sandboxCode);
-    const requiredDuration = hasSandbox ? 300 : 120; // 5 mins (300s) vs 2 mins (120s)
+    const requiredDuration = 60; // 1 min (60s) for both sandbox and normal slides
     
     const spentSoFar = (typeof activityLog !== 'undefined' && activityLog[index]) || 0;
     window.activeSlideTimeLeft = Math.max(0, requiredDuration - spentSoFar);
