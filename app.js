@@ -11324,13 +11324,43 @@ window.loadStudentSession = function() {
             if (authGate) authGate.style.display = 'none';
             if (sessionUser) sessionUser.innerText = `👤 ${currentUser}`;
             
+            // Safeguard migration if user registered before module unlock feature
+            if (!u.unlockedModules) {
+                u.unlockedModules = {};
+                if (u.unlocked === true) {
+                    u.unlockedModules["HTML Course"] = true;
+                } else {
+                    const studentModulesList = getStudentCourseModules();
+                    studentModulesList.forEach(m => u.unlockedModules[m] = false);
+                }
+                // Save migrated schema back to localStorage database!
+                users[currentUser] = u;
+                localStorage.setItem('codewith_ai_users', JSON.stringify(users));
+            }
+            
+            const hasUnlockedAny = Object.values(u.unlockedModules || {}).some(val => val === true);
+            
             // Handle Admin Course Approval Lock status
-            if (u.unlocked === true) {
+            if (hasUnlockedAny) {
                 if (slideCard) slideCard.style.display = 'block';
                 if (lockOverlay) lockOverlay.style.display = 'none';
                 if (nav) {
                     nav.style.pointerEvents = 'auto';
                     nav.style.opacity = '1';
+                }
+                
+                // If student is currently positioned on a slide of a locked module, move them to the first unlocked slide!
+                const currentModule = getSlideModuleName(currentSlideIndex);
+                if (!u.unlockedModules[currentModule]) {
+                    let targetIdx = 0;
+                    for (let i = 0; i < slidesData.length; i++) {
+                        const modName = getSlideModuleName(i);
+                        if (u.unlockedModules[modName]) {
+                            targetIdx = i;
+                            break;
+                        }
+                    }
+                    currentSlideIndex = targetIdx;
                 }
                 
                 showSlide(currentSlideIndex);
@@ -11343,8 +11373,12 @@ window.loadStudentSession = function() {
                     document.getElementById('lock-mobile').innerText = u.mobile || '-';
                     document.getElementById('lock-year').innerText = u.year || '-';
                     
-                    // Setup WhatsApp alert button details
+                    // Setup WhatsApp alert link details
                     const waBtn = document.getElementById('btn-whatsapp-admin');
+                    if (waBtn) {
+                        const msg = `Hello Admin, Mera name *${u.fullname || currentUser}* hai. Maine codewith_ai par register kiya hai (Username: *${currentUser}*, Mobile: *${u.mobile || ''}*). Kripya mera course access unlock kar dijiye.`;
+                        waBtn.href = `https://wa.me/918090311359?text=${encodeURIComponent(msg)}`;
+                    }
                     
                     // Setup Request Unlock button status
                     const reqBtn = document.getElementById('btn-request-unlock');
@@ -11858,6 +11892,22 @@ window.isSlideUnlocked = function(index, u) {
     if (!u) return false;
     const moduleName = getSlideModuleName(index);
     
+    // Safeguard legacy fallback
+    if (!u.unlockedModules) {
+        if (u.unlocked === true && moduleName === "HTML Course") {
+            return true;
+        }
+        return false;
+    }
+    
     // If the module itself is unlocked, ALL slides inside it are unlocked!
     return !!(u.unlockedModules && u.unlockedModules[moduleName] === true);
 };
+
+/* --- Dynamic Cross-Tab Real-time Synchronizer --- */
+window.addEventListener('storage', (e) => {
+    if (e.key === 'codewith_ai_users') {
+        loadStudentSession();
+        updateSidebarLocks();
+    }
+});
