@@ -954,6 +954,14 @@
                             <button id="btn-play-ai-video" onclick="playAILectureVideo()" class="console-clear-btn" style="flex: 1; background: #10b981; color: black; font-weight: bold; font-size: 0.75rem; border-color: #10b981; padding: 0.35rem 0.5rem; border-radius: 4px;">▶ Play Lecture</button>
                             <button id="btn-stop-ai-video" onclick="stopAILectureVideo()" class="console-clear-btn" style="background: #ef4444; color: white; font-weight: bold; font-size: 0.75rem; border-color: #ef4444; padding: 0.35rem 0.5rem; border-radius: 4px;" disabled>⬛ Stop</button>
                         </div>
+                        
+                        <!-- Voice accent selector dropdown -->
+                        <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.25rem;">
+                            <label style="font-size: 0.65rem; color: #cbd5e1; font-weight: bold; white-space: nowrap;">Voice Accent:</label>
+                            <select id="ai-voice-select" style="flex: 1; padding: 0.25rem; font-size: 0.7rem; border-radius: 4px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.15); color: white; outline: none; box-sizing: border-box;">
+                                <option value="">Loading system voices...</option>
+                            </select>
+                        </div>
                     </div>
                     <div id="slide-notes-pane" style="width: 250px; display: none; flex-direction: column; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); padding: 1rem; border-radius: 8px; box-sizing: border-box;" class="no-print">
                         <div style="font-size: 0.85rem; font-weight: bold; color: var(--accent-blue); margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">

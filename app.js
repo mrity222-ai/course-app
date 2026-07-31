@@ -12250,10 +12250,22 @@ window.playAILectureVideo = function() {
     // Start Audio Lecturing using browser WebSpeech SpeechSynthesis
     aiSpeechUtterance = new SpeechSynthesisUtterance(cleanText);
     
-    // Use dynamic Indian English accent if available
+    // Read user selected voice accent from dropdown
+    const voiceSelect = document.getElementById('ai-voice-select');
+    const selectedVoiceName = voiceSelect ? voiceSelect.value : '';
     const voices = window.speechSynthesis.getVoices();
-    const indVoice = voices.find(v => v.lang.includes('IN') || v.lang.includes('hi'));
-    if (indVoice) aiSpeechUtterance.voice = indVoice;
+    const chosenVoice = voices.find(v => v.name === selectedVoiceName);
+    
+    if (chosenVoice) {
+        aiSpeechUtterance.voice = chosenVoice;
+    } else {
+        const indVoice = voices.find(v => v.lang.includes('IN') || v.lang.includes('hi'));
+        if (indVoice) aiSpeechUtterance.voice = indVoice;
+    }
+    
+    // Human-like speech optimization settings
+    aiSpeechUtterance.rate = 0.88;  // Slower pacing for better understanding
+    aiSpeechUtterance.pitch = 1.02; // Warm, approachable tone
     
     aiSpeechUtterance.onboundary = function(event) {
         if (event.name === 'sentence') {
@@ -12461,4 +12473,67 @@ function startAIAvatarRender(canvas) {
     }
     
     draw();
+}
+
+/* --- Dynamic Premium Voices Population System --- */
+window.populateAIVoices = function() {
+    const select = document.getElementById('ai-voice-select');
+    if (!select) return;
+    
+    // Clear old options
+    select.innerHTML = '';
+    
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length === 0) {
+        select.innerHTML = '<option value="">Default System Voice</option>';
+        return;
+    }
+    
+    // Sort and prioritize Hindi and Indian English natural voices
+    const sortedVoices = [...voices].sort((a, b) => {
+        const isAHi = a.lang.includes('hi') || a.lang.includes('IN');
+        const isBHi = b.lang.includes('hi') || b.lang.includes('IN');
+        if (isAHi && !isBHi) return -1;
+        if (!isAHi && isBHi) return 1;
+        return a.name.localeCompare(b.name);
+    });
+    
+    let addedCount = 0;
+    sortedVoices.forEach(v => {
+        if (v.lang.includes('en') || v.lang.includes('hi')) {
+            const opt = document.createElement('option');
+            opt.value = v.name;
+            let displayName = v.name
+                .replace('Microsoft', 'MS')
+                .replace('Desktop', '')
+                .replace('Natural', '🍃 Natural')
+                .replace('Online', '🌐');
+            opt.innerText = `${displayName} (${v.lang})`;
+            select.appendChild(opt);
+            addedCount++;
+        }
+    });
+    
+    if (addedCount === 0) {
+        select.innerHTML = '<option value="">Default System Voice</option>';
+    }
+    
+    // Try to auto-select Google Hindi, en-IN, or MS Natural en-IN by default
+    const defaultVoice = sortedVoices.find(v => 
+        (v.name.includes('Google') && v.lang.includes('hi')) || 
+        (v.name.includes('Google') && v.lang.includes('IN')) ||
+        (v.name.includes('Natural') && v.lang.includes('IN'))
+    );
+    if (defaultVoice) {
+        select.value = defaultVoice.name;
+    }
+};
+
+// Listen to browser voice load events dynamically
+if (window.speechSynthesis) {
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = populateAIVoices;
+    }
+    // Populate immediately in case voices are pre-loaded
+    setTimeout(populateAIVoices, 500);
 }
