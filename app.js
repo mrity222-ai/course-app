@@ -9819,6 +9819,11 @@ function renderCustomAccordions() {
         link.parentNode.replaceChild(newLink, link);
         newLink.addEventListener('click', (e) => {
             const slideNum = parseInt(e.target.getAttribute('data-slide'));
+            if (slideNum > currentSlideIndex && typeof activeSlideTimeLeft !== 'undefined' && activeSlideTimeLeft > 0) {
+                const hasSandbox = !!slidesData[currentSlideIndex]?.sandboxCode;
+                alert(`⚠️ Kripya is slide ko dhyaan se padhein. Agli slide par jaane ke liye aapko kam se kam ${hasSandbox ? "8" : "5"} minute padhna hoga pehle!`);
+                return;
+            }
             showSlide(slideNum);
         });
     });
@@ -9929,10 +9934,15 @@ function showSlide(index) {
     const currentUser = localStorage.getItem('codewith_ai_currentUser');
     let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
     const u = currentUser ? users[currentUser] : null;
-    const isNextUnlocked = (index + 1) < slidesData.length && isSlideUnlocked(index + 1, u);
     
     btnPrev.disabled = index === 0;
-    btnNext.disabled = (index === slidesData.length - 1) || (!isNextUnlocked);
+    
+    if (typeof initializeSlideTimer === 'function') {
+        initializeSlideTimer(index);
+    } else {
+        const isNextUnlocked = (index + 1) < slidesData.length && isSlideUnlocked(index + 1, u);
+        btnNext.disabled = (index === slidesData.length - 1) || (!isNextUnlocked);
+    }
 
     sidebarLinks.forEach(link => {
         if (parseInt(link.getAttribute('data-slide')) === index) {
@@ -10069,6 +10079,12 @@ function setupKeyboardControls() {
             const currentUser = localStorage.getItem('codewith_ai_currentUser');
             let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
             const u = currentUser ? users[currentUser] : null;
+            
+            if (typeof activeSlideTimeLeft !== 'undefined' && activeSlideTimeLeft > 0) {
+                const hasSandbox = !!slidesData[currentSlideIndex]?.sandboxCode;
+                alert(`⚠️ Kripya is slide ko dhyaan se padhein. Agli slide par jaane ke liye aapko kam se kam ${hasSandbox ? "8" : "5"} minute padhna hoga pehle!`);
+                return;
+            }
             
             const isNextUnlocked = nextIdx < slidesData.length && isSlideUnlocked(nextIdx, u);
             if (isNextUnlocked) {
@@ -10328,7 +10344,7 @@ window.toggleSlideCompletion = function() {
     let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
     const u = currentUser ? users[currentUser] : null;
     const isNextUnlocked = (currentSlideIndex + 1) < slidesData.length && isSlideUnlocked(currentSlideIndex + 1, u);
-    btnNext.disabled = (currentSlideIndex === slidesData.length - 1) || (!isNextUnlocked);
+    btnNext.disabled = (currentSlideIndex === slidesData.length - 1) || (!isNextUnlocked) || (typeof activeSlideTimeLeft !== 'undefined' && activeSlideTimeLeft > 0);
     
     saveStudentProgress();
 };
@@ -12079,3 +12095,73 @@ window.recordSlideTimeSpent = function() {
 window.addEventListener('beforeunload', () => {
     recordSlideTimeSpent();
 });
+
+/* --- Slide Completion Locked Countdown Timer Engine --- */
+window.activeSlideTimeLeft = 0;
+window.slideTimerInterval = null;
+
+window.initializeSlideTimer = function(index) {
+    if (window.slideTimerInterval) {
+        clearInterval(window.slideTimerInterval);
+        window.slideTimerInterval = null;
+    }
+    
+    const currentUser = localStorage.getItem('codewith_ai_currentUser');
+    if (!currentUser) {
+        window.activeSlideTimeLeft = 0;
+        if (btnNext) {
+            btnNext.innerHTML = `Aage (Next) <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>`;
+        }
+        return;
+    }
+    
+    let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
+    const u = users[currentUser];
+    if (!u) return;
+    
+    const slide = slidesData[index];
+    const hasSandbox = !!(slide && slide.sandboxCode);
+    const requiredDuration = hasSandbox ? 480 : 300; // 8 mins (480s) vs 5 mins (300s)
+    
+    const spentSoFar = (u.slideTimeSpent && u.slideTimeSpent[index]) || 0;
+    window.activeSlideTimeLeft = Math.max(0, requiredDuration - spentSoFar);
+    
+    if (window.activeSlideTimeLeft > 0) {
+        if (btnNext) {
+            btnNext.disabled = true;
+            updateNextButtonTimerDisplay();
+        }
+        
+        window.slideTimerInterval = setInterval(() => {
+            if (window.activeSlideTimeLeft > 0) {
+                window.activeSlideTimeLeft--;
+                updateNextButtonTimerDisplay();
+            } else {
+                clearInterval(window.slideTimerInterval);
+                window.slideTimerInterval = null;
+                
+                // Unlock Next Button
+                const isNextUnlocked = (index + 1) < slidesData.length && isSlideUnlocked(index + 1, u);
+                if (btnNext) {
+                    btnNext.disabled = (index === slidesData.length - 1) || (!isNextUnlocked);
+                    btnNext.innerHTML = `Aage (Next) <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>`;
+                }
+            }
+        }, 1000);
+    } else {
+        const isNextUnlocked = (index + 1) < slidesData.length && isSlideUnlocked(index + 1, u);
+        if (btnNext) {
+            btnNext.disabled = (index === slidesData.length - 1) || (!isNextUnlocked);
+            btnNext.innerHTML = `Aage (Next) <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>`;
+        }
+    }
+};
+
+function updateNextButtonTimerDisplay() {
+    if (!btnNext) return;
+    const mins = Math.floor(window.activeSlideTimeLeft / 60);
+    const secs = window.activeSlideTimeLeft % 60;
+    const formatted = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    btnNext.innerHTML = `Aage (Next) (${formatted}) ⏳`;
+    btnNext.disabled = true;
+}
