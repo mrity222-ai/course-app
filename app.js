@@ -9713,7 +9713,7 @@ let activeQuizCourseName = "";
 let slidesContainer, btnPrev, btnNext, slideCounter, progressBar, sandboxContainer, sandboxEditor, sandboxPreview, sidebarLinks;
 
 /* Initialize App */
-function initApp() {
+async function initApp() {
     // 1. First assign all required global elements
     slidesContainer = document.getElementById('slides-container');
     btnPrev = document.getElementById('btn-prev');
@@ -9725,17 +9725,38 @@ function initApp() {
     sandboxPreview = document.getElementById('sandbox-preview');
     sidebarLinks = document.querySelectorAll('.slide-link');
 
-    // 2. Merge custom courses from local storage
+    // 2. Fetch custom courses from Server Database
+    try {
+        const res = await fetch('/api/courses/custom/list');
+        if (res.ok) {
+            customCourses = await res.json();
+        }
+    } catch (e) {
+        console.error("Error fetching custom courses:", e);
+    }
+
+    // Merge custom courses
     customCourses.forEach(c => {
         slidesData.push(...c.slides);
     });
+
+    // Fetch Sarvam AI API Key
+    try {
+        const res = await fetch('/api/config/sarvam_key');
+        if (res.ok) {
+            const data = await res.json();
+            localStorage.setItem('codewith_ai_sarvam_key', data.key);
+        }
+    } catch (e) {
+        console.error("Error fetching Sarvam API Key:", e);
+    }
 
     // 3. Render all slides and dynamic structures
     renderAllSlides();
     renderCustomAccordions();
     
     // 4. Initialize session and locks (which calls showSlide safely now!)
-    loadStudentSession();
+    await loadStudentSession();
     updateSidebarLocks();
     
     // 5. Setup keyboard handlers and dashboard updates
@@ -10894,12 +10915,19 @@ window.startPDFBrowserParsing = async function() {
                 });
             }
             
-            customCourses.push({
+            const newCourse = {
                 title: title,
                 id: id,
                 slides: courseSlides
+            };
+            customCourses.push(newCourse);
+            
+            // Post custom course to Server Database
+            await fetch('/api/courses/custom/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newCourse)
             });
-            localStorage.setItem('codewith_ai_custom_courses', JSON.stringify(customCourses));
             
             slidesData.push(...courseSlides);
             
@@ -10956,18 +10984,29 @@ window.renderAdminCoursesList = function() {
     listDiv.innerHTML = rowsHTML + customRowsHTML;
 };
 
-window.deleteCustomCourse = function(index) {
-    if (confirm(`Are you sure you want to delete course "${customCourses[index].title}"?`)) {
-        const courseSlides = customCourses[index].slides;
+window.deleteCustomCourse = async function(index) {
+    const course = customCourses[index];
+    if (!course) return;
+    if (confirm(`Are you sure you want to delete course "${course.title}"?`)) {
+        const courseSlides = course.slides;
         slidesData = slidesData.filter(s => !courseSlides.some(cs => cs.title === s.title && cs.level === s.level));
         
-        customCourses.splice(index, 1);
-        localStorage.setItem('codewith_ai_custom_courses', JSON.stringify(customCourses));
-        
-        renderCustomAccordions();
-        renderAdminCoursesList();
-        updateDashboard();
-        showSlide(0);
+        try {
+            await fetch('/api/courses/custom/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: course.id })
+            });
+            
+            customCourses.splice(index, 1);
+            
+            renderCustomAccordions();
+            renderAdminCoursesList();
+            updateDashboard();
+            showSlide(0);
+        } catch (e) {
+            console.error("Error deleting course:", e);
+        }
     }
 };
 
@@ -11021,17 +11060,29 @@ function updateXPBar() {
 }
 
 /* Personal Code Snippets Saver & Loader library */
-window.saveCodeSnippet = function() {
+window.saveCodeSnippet = async function() {
     const code = sandboxEditor.value;
     if (!code.trim()) {
         alert("Pehle Editor me kuch code likhein!");
         return;
     }
     const name = prompt("Snippet ka ek name enter karein (e.g. Card Style):");
-    if (name) {
+    const currentUser = localStorage.getItem('codewith_ai_currentUser');
+    if (!name) return;
+    
+    try {
+        if (currentUser) {
+            await fetch('/api/snippets/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: currentUser, name: name, code: code })
+            });
+        }
+        
         savedSnippets.push({ name: name, code: code, date: new Date().toLocaleDateString() });
-        localStorage.setItem('codewith_ai_snippets', JSON.stringify(savedSnippets));
         alert(`Snippet "${name}" save ho gaya hai!`);
+    } catch (e) {
+        console.error("Error saving snippet:", e);
     }
 };
 
@@ -11047,9 +11098,21 @@ window.closeSnippetsDrawer = function() {
     document.getElementById('snippets-library-modal').classList.remove('active');
 };
 
-function renderSnippetsList() {
+window.renderSnippetsList = async function() {
     const container = document.getElementById('snippets-list-container');
     if (!container) return;
+    
+    const currentUser = localStorage.getItem('codewith_ai_currentUser');
+    if (currentUser) {
+        try {
+            const res = await fetch(`/api/snippets/list?username=${encodeURIComponent(currentUser)}`);
+            if (res.ok) {
+                savedSnippets = await res.json();
+            }
+        } catch (e) {
+            console.error("Error listing snippets:", e);
+        }
+    }
     
     if (savedSnippets.length === 0) {
         container.innerHTML = `<div style="text-align:center; padding:1.5rem; color:#cbd5e1; font-size: 0.85rem;">Abhi tak koi snippet save nahi kiya gaya hai.</div>`;
@@ -11060,7 +11123,7 @@ function renderSnippetsList() {
         <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:0.6rem 0.8rem; border-radius:6px; border:1px solid rgba(255,255,255,0.05); font-size:0.8rem; color: #ffffff; text-align: left;">
             <div>
                 <span style="color:#ffffff; font-weight:bold; display:block;">${s.name}</span>
-                <span style="color:#94a3b8; font-size:0.7rem;">${s.date}</span>
+                <span style="color:#94a3b8; font-size:0.7rem;">${s.date || new Date().toLocaleDateString()}</span>
             </div>
             <div style="display:flex; gap:0.4rem;">
                 <button class="console-clear-btn" onclick="loadSnippet(${idx})" style="background:var(--accent-blue); border-color:var(--accent-blue); color:black; padding:0.2rem 0.5rem;">Load</button>
@@ -11068,7 +11131,7 @@ function renderSnippetsList() {
             </div>
         </div>
     `).join('');
-}
+};
 
 window.loadSnippet = function(idx) {
     if (confirm(`Kya aap snippet "${savedSnippets[idx].name}" load karna chahte hain? Isse aapka current editor code override ho jayega.`)) {
@@ -11078,11 +11141,24 @@ window.loadSnippet = function(idx) {
     }
 };
 
-window.deleteSnippet = function(idx) {
-    if (confirm(`Are you sure you want to delete snippet "${savedSnippets[idx].name}"?`)) {
-        savedSnippets.splice(idx, 1);
-        localStorage.setItem('codewith_ai_snippets', JSON.stringify(savedSnippets));
-        renderSnippetsList();
+window.deleteSnippet = async function(idx) {
+    const snippet = savedSnippets[idx];
+    if (!snippet) return;
+    if (confirm(`Are you sure you want to delete snippet "${snippet.name}"?`)) {
+        const currentUser = localStorage.getItem('codewith_ai_currentUser');
+        try {
+            if (currentUser) {
+                await fetch('/api/snippets/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: currentUser, name: snippet.name })
+                });
+            }
+            savedSnippets.splice(idx, 1);
+            renderSnippetsList();
+        } catch (e) {
+            console.error("Error deleting snippet:", e);
+        }
     }
 };
 
@@ -11358,7 +11434,7 @@ window.switchAuthTab = function(tab) {
     }
 };
 
-window.handleAuthSubmit = function() {
+window.handleAuthSubmit = async function() {
     const usernameInput = document.getElementById('auth-username');
     const passwordInput = document.getElementById('auth-password');
     const emailInput = document.getElementById('auth-email');
@@ -11380,78 +11456,77 @@ window.handleAuthSubmit = function() {
         return;
     }
     
-    let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
-    
     if (activeAuthTab === 'signup') {
-        if (users[username]) {
-            errorMsg.innerText = "Username pehle se exists karta hai!";
+        try {
+            const res = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username,
+                    password,
+                    email,
+                    fullname,
+                    mobile,
+                    year
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                errorMsg.innerText = data.error || "Registration failed!";
+                errorMsg.style.display = 'block';
+                return;
+            }
+            
+            activeAuthTab = 'signin';
+            switchAuthTab('signin');
+            errorMsg.innerText = "Registration safal! Ab login karein.";
+            errorMsg.style.color = '#10b981';
             errorMsg.style.display = 'block';
-            return;
+            
+            // Reset fields
+            emailInput.value = '';
+            if (fullnameInput) fullnameInput.value = '';
+            if (mobileInput) mobileInput.value = '';
+        } catch (err) {
+            errorMsg.innerText = "Server error! Please check connection.";
+            errorMsg.style.display = 'block';
         }
-        
-        users[username] = {
-            username: username,
-            password: password,
-            email: email,
-            fullname: fullname,
-            mobile: mobile,
-            year: year,
-            unlocked: false, // Wait for admin unlock approval
-            currentSlideIndex: 0,
-            completedSlides: {},
-            studentXP: 0,
-            studentLevel: 1,
-            slideNotes: {},
-            activityLog: {}
-        };
-        localStorage.setItem('codewith_ai_users', JSON.stringify(users));
-        activeAuthTab = 'signin';
-        switchAuthTab('signin');
-        errorMsg.innerText = "Registration safal! Admin approval ke baad access milega. Login karein.";
-        errorMsg.style.color = '#10b981';
-        errorMsg.style.display = 'block';
-        
-        // Reset fields
-        emailInput.value = '';
-        if (fullnameInput) fullnameInput.value = '';
-        if (mobileInput) mobileInput.value = '';
     } else {
         // Sign In
-        if (!users[username] || users[username].password !== password) {
-            errorMsg.innerText = "Galat Username ya Password!";
-            errorMsg.style.color = '#ef4444';
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                errorMsg.innerText = data.error || "Galat Username ya Password!";
+                errorMsg.style.color = '#ef4444';
+                errorMsg.style.display = 'block';
+                return;
+            }
+            
+            localStorage.setItem('codewith_ai_currentUser', username);
+            errorMsg.style.display = 'none';
+            
+            // Load User States
+            await loadStudentSession();
+            
+            // Refresh UI components
+            updateDashboard();
+            updateXPBar();
+            renderContributionGrid();
+        } catch (err) {
+            errorMsg.innerText = "Server connection error!";
             errorMsg.style.display = 'block';
-            return;
         }
-        
-        localStorage.setItem('codewith_ai_currentUser', username);
-        errorMsg.style.display = 'none';
-        
-        // Load User States
-        const u = users[username];
-        currentSlideIndex = u.currentSlideIndex || 0;
-        completedSlides = u.completedSlides || {};
-        studentXP = u.studentXP || 0;
-        studentLevel = u.studentLevel || 1;
-        slideNotes = u.slideNotes || {};
-        activityLog = u.activityLog || {};
-        
-        // Hide gate and show username
-        document.getElementById('student-auth-gate').style.display = 'none';
-        document.getElementById('session-username').innerText = `👤 ${username}`;
-        
-        // Refresh UI components
-        updateDashboard();
-        updateXPBar();
-        renderContributionGrid();
-
-        // Check locks and show slides
-        loadStudentSession();
-        checkStudentAlerts();
     }
 };
 
-window.loadStudentSession = function() {
+window.currentUserObj = null;
+
+window.loadStudentSession = async function() {
     const currentUser = localStorage.getItem('codewith_ai_currentUser');
     const authGate = document.getElementById('student-auth-gate');
     const sessionUser = document.getElementById('session-username');
@@ -11461,101 +11536,124 @@ window.loadStudentSession = function() {
     const nav = document.querySelector('.levels-nav');
     
     if (currentUser) {
-        let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
-        const u = users[currentUser];
-        if (u) {
-            currentSlideIndex = u.currentSlideIndex || 0;
-            completedSlides = u.completedSlides || {};
-            studentXP = u.studentXP || 0;
-            studentLevel = u.studentLevel || 1;
-            slideNotes = u.slideNotes || {};
-            activityLog = u.activityLog || {};
-            
-            if (authGate) authGate.style.display = 'none';
-            if (sessionUser) sessionUser.innerText = `👤 ${currentUser}`;
-            
-            // Safeguard migration if user registered before module unlock feature
-            if (!u.unlockedModules) {
-                u.unlockedModules = {};
-                if (u.unlocked === true) {
-                    u.unlockedModules["HTML Course"] = true;
+        try {
+            // Fetch student progress from Server Database
+            const res = await fetch(`/api/progress/get?username=${encodeURIComponent(currentUser)}`);
+            if (res.ok) {
+                const u = await res.json();
+                window.currentUserObj = u;
+                
+                // Set global parameters
+                currentSlideIndex = u.unlockedSlides || 0;
+                completedSlides = {};
+                (u.completedSlides || []).forEach(idx => {
+                    completedSlides[idx] = true;
+                });
+                
+                // Load time logs if needed
+                activityLog = {};
+                (u.timeLogs || []).forEach(log => {
+                    activityLog[log.slideIndex] = log.secondsSpent;
+                });
+
+                // Fetch Notes
+                const notesRes = await fetch(`/api/notes/get?username=${encodeURIComponent(currentUser)}`);
+                if (notesRes.ok) {
+                    const notesData = await notesRes.json();
+                    slideNotes = notesData.slideNotes || {};
+                }
+
+                // Check for Admin Course Approval Lock status
+                const unlockedModules = u.unlockedModules || {};
+                const hasUnlockedAny = Object.values(unlockedModules).some(val => val === true);
+                
+                if (authGate) authGate.style.display = 'none';
+                if (sessionUser) sessionUser.innerText = `👤 ${currentUser}`;
+                
+                if (hasUnlockedAny) {
+                    if (slideCard) slideCard.style.display = 'block';
+                    if (lockOverlay) lockOverlay.style.display = 'none';
+                    if (nav) {
+                        nav.style.pointerEvents = 'auto';
+                        nav.style.opacity = '1';
+                    }
+                    
+                    // If student is positioned on a locked module, move them to the first unlocked slide
+                    const currentModule = getSlideModuleName(currentSlideIndex);
+                    if (!unlockedModules[currentModule]) {
+                        let targetIdx = 0;
+                        for (let i = 0; i < slidesData.length; i++) {
+                            const modName = getSlideModuleName(i);
+                            if (unlockedModules[modName]) {
+                                targetIdx = i;
+                                break;
+                            }
+                        }
+                        currentSlideIndex = targetIdx;
+                    }
+                    
+                    showSlide(currentSlideIndex);
                 } else {
-                    const studentModulesList = getStudentCourseModules();
-                    studentModulesList.forEach(m => u.unlockedModules[m] = false);
-                }
-                // Save migrated schema back to localStorage database!
-                users[currentUser] = u;
-                localStorage.setItem('codewith_ai_users', JSON.stringify(users));
-            }
-            
-            const hasUnlockedAny = Object.values(u.unlockedModules || {}).some(val => val === true);
-            
-            // Handle Admin Course Approval Lock status
-            if (hasUnlockedAny) {
-                if (slideCard) slideCard.style.display = 'block';
-                if (lockOverlay) lockOverlay.style.display = 'none';
-                if (nav) {
-                    nav.style.pointerEvents = 'auto';
-                    nav.style.opacity = '1';
-                }
-                
-                // If student is currently positioned on a slide of a locked module, move them to the first unlocked slide!
-                const currentModule = getSlideModuleName(currentSlideIndex);
-                if (!u.unlockedModules[currentModule]) {
-                    let targetIdx = 0;
-                    for (let i = 0; i < slidesData.length; i++) {
-                        const modName = getSlideModuleName(i);
-                        if (u.unlockedModules[modName]) {
-                            targetIdx = i;
-                            break;
+                    if (slideCard) slideCard.style.display = 'none';
+                    if (sandbox) sandbox.style.display = 'none';
+                    if (lockOverlay) {
+                        lockOverlay.style.display = 'flex';
+                        document.getElementById('lock-fullname').innerText = u.fullname || currentUser;
+                        document.getElementById('lock-mobile').innerText = u.mobile || '-';
+                        document.getElementById('lock-year').innerText = u.year || '-';
+                        
+                        // Setup WhatsApp alert link details
+                        const waBtn = document.getElementById('btn-whatsapp-admin');
+                        if (waBtn) {
+                            const msg = `Hello Admin, Mera name *${u.fullname || currentUser}* hai. Maine codewith_ai par register kiya hai (Username: *${currentUser}*). Kripya mera course access unlock kar dijiye.`;
+                            waBtn.href = `https://wa.me/918090311359?text=${encodeURIComponent(msg)}`;
+                        }
+                        
+                        // Setup Request Unlock button status
+                        const reqBtn = document.getElementById('btn-request-unlock');
+                        if (reqBtn) {
+                            if (u.unlockRequested) {
+                                reqBtn.innerText = "✓ Request Sent!";
+                                reqBtn.disabled = true;
+                                reqBtn.style.background = "rgba(255,255,255,0.15)";
+                                reqBtn.style.color = "rgba(255,255,255,0.4)";
+                                reqBtn.style.cursor = "not-allowed";
+                            } else {
+                                reqBtn.innerText = "📧 Request Unlock";
+                                reqBtn.disabled = false;
+                                reqBtn.style.background = "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)";
+                                reqBtn.style.color = "white";
+                                reqBtn.style.cursor = "pointer";
+                            }
                         }
                     }
-                    currentSlideIndex = targetIdx;
+                    if (nav) {
+                        nav.style.pointerEvents = 'none';
+                        nav.style.opacity = '0.4';
+                    }
                 }
                 
-                showSlide(currentSlideIndex);
+                // Check alerts
+                if (u.alerts && u.alerts.length > 0) {
+                    u.alerts.forEach(alertMsg => {
+                        alert(`📢 Message from Admin:\n\n${alertMsg}`);
+                    });
+                    // Clear alerts on server once read
+                    await fetch('/api/progress/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: currentUser, alerts: [] })
+                    });
+                }
+                
             } else {
-                if (slideCard) slideCard.style.display = 'none';
-                if (sandbox) sandbox.style.display = 'none';
-                if (lockOverlay) {
-                    lockOverlay.style.display = 'flex';
-                    document.getElementById('lock-fullname').innerText = u.fullname || '-';
-                    document.getElementById('lock-mobile').innerText = u.mobile || '-';
-                    document.getElementById('lock-year').innerText = u.year || '-';
-                    
-                    // Setup WhatsApp alert link details
-                    const waBtn = document.getElementById('btn-whatsapp-admin');
-                    if (waBtn) {
-                        const msg = `Hello Admin, Mera name *${u.fullname || currentUser}* hai. Maine codewith_ai par register kiya hai (Username: *${currentUser}*, Mobile: *${u.mobile || ''}*). Kripya mera course access unlock kar dijiye.`;
-                        waBtn.href = `https://wa.me/918090311359?text=${encodeURIComponent(msg)}`;
-                    }
-                    
-                    // Setup Request Unlock button status
-                    const reqBtn = document.getElementById('btn-request-unlock');
-                    if (reqBtn) {
-                        if (u.unlockRequested) {
-                            reqBtn.innerText = "✓ Request Sent!";
-                            reqBtn.disabled = true;
-                            reqBtn.style.background = "rgba(255,255,255,0.15)";
-                            reqBtn.style.color = "rgba(255,255,255,0.4)";
-                            reqBtn.style.cursor = "not-allowed";
-                        } else {
-                            reqBtn.innerText = "📧 Request Unlock";
-                            reqBtn.disabled = false;
-                            reqBtn.style.background = "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)";
-                            reqBtn.style.color = "white";
-                            reqBtn.style.cursor = "pointer";
-                        }
-                    }
-                }
-                if (nav) {
-                    nav.style.pointerEvents = 'none';
-                    nav.style.opacity = '0.4';
-                }
+                localStorage.removeItem('codewith_ai_currentUser');
+                if (authGate) authGate.style.display = 'flex';
             }
-            
-            return;
+        } catch (e) {
+            console.error("Error loading session:", e);
         }
+        return;
     }
     
     // Default locked guest state
@@ -11569,19 +11667,45 @@ window.loadStudentSession = function() {
     }
 };
 
-window.saveStudentProgress = function() {
+window.saveStudentProgress = async function() {
     const currentUser = localStorage.getItem('codewith_ai_currentUser');
     if (!currentUser) return;
     
-    let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
-    if (users[currentUser]) {
-        users[currentUser].currentSlideIndex = currentSlideIndex;
-        users[currentUser].completedSlides = completedSlides;
-        users[currentUser].studentXP = studentXP;
-        users[currentUser].studentLevel = studentLevel;
-        users[currentUser].slideNotes = slideNotes;
-        users[currentUser].activityLog = activityLog;
-        localStorage.setItem('codewith_ai_users', JSON.stringify(users));
+    const completedArr = [];
+    Object.keys(completedSlides).forEach(k => {
+        if (completedSlides[k]) completedArr.push(parseInt(k));
+    });
+    
+    const logsArr = [];
+    Object.keys(activityLog).forEach(k => {
+        logsArr.push({
+            slideIndex: parseInt(k),
+            secondsSpent: activityLog[k]
+        });
+    });
+    
+    try {
+        await fetch('/api/progress/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: currentUser,
+                unlockedSlides: currentSlideIndex,
+                completedSlides: completedArr,
+                timeLogs: logsArr
+            })
+        });
+
+        await fetch('/api/notes/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: currentUser,
+                slideNotes: slideNotes
+            })
+        });
+    } catch (e) {
+        console.error("Error saving progress:", e);
     }
 };
 
@@ -11646,10 +11770,10 @@ window.switchAdminTab = function(tab) {
         contentStudents.style.display = 'none';
         renderAdminCoursesList();
     } else {
-        btnStudents.style.background = 'var(--accent-blue)';
-        btnStudents.style.color = 'black';
         btnCourses.style.background = 'transparent';
         btnCourses.style.color = 'white';
+        btnStudents.style.background = 'var(--accent-blue)';
+        btnStudents.style.color = 'black';
         
         contentCourses.style.display = 'none';
         contentStudents.style.display = 'flex';
@@ -11657,25 +11781,25 @@ window.switchAdminTab = function(tab) {
     }
 };
 
-window.renderAdminStudentsList = function() {
+window.renderAdminStudentsList = async function() {
     const container = document.getElementById('admin-students-list-container');
     const selectTarget = document.getElementById('admin-target-student');
     if (!container || !selectTarget) return;
     
-    const users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
-    const userKeys = Object.keys(users);
-    
-    // Sort keys so that those with unlockRequested === true go to the very top!
-    userKeys.sort((a, b) => {
-        const reqA = users[a].unlockRequested ? 1 : 0;
-        const reqB = users[b].unlockRequested ? 1 : 0;
-        return reqB - reqA;
-    });
+    let students = [];
+    try {
+        const res = await fetch('/api/admin/students');
+        if (res.ok) {
+            students = await res.json();
+        }
+    } catch (e) {
+        console.error("Error fetching students list:", e);
+    }
     
     // Reset Target Dropdown options
     selectTarget.innerHTML = '<option value="">-- Choose Student --</option>';
     
-    if (userKeys.length === 0) {
+    if (students.length === 0) {
         container.innerHTML = `
             <div style="text-align: center; padding: 2rem; color: #94a3b8; font-size: 0.85rem; border: 1px dashed rgba(255,255,255,0.1); border-radius: 6px;">
                 Abhi tak koi bhi student register nahi hua hai.
@@ -11684,17 +11808,10 @@ window.renderAdminStudentsList = function() {
         return;
     }
     
-    let tableRows = userKeys.map(username => {
-        const u = users[username];
-        
-        // Calculate completion percentage
+    let tableRows = students.map(u => {
+        const username = u.username;
         const total = slidesData.length;
-        let completedCount = 0;
-        if (u.completedSlides) {
-            Object.keys(u.completedSlides).forEach(k => {
-                if (u.completedSlides[k]) completedCount++;
-            });
-        }
+        let completedCount = u.completedSlides ? u.completedSlides.length : 0;
         const pct = total > 0 ? Math.round((completedCount / total) * 100) : 0;
         
         // Populate target dropdown option
@@ -11705,10 +11822,10 @@ window.renderAdminStudentsList = function() {
         
         // Setup modules access control panel list
         const studentModules = getStudentCourseModules();
-        if (!u.unlockedModules) u.unlockedModules = {};
+        const unlockedModules = u.unlockedModules || {};
         
         const modulesHTML = studentModules.map(mName => {
-            const isModUnlocked = u.unlockedModules[mName] === true;
+            const isModUnlocked = unlockedModules[mName] === true;
             const btnBg = isModUnlocked ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.08)";
             const btnBorder = isModUnlocked ? "rgba(16,185,129,0.35)" : "rgba(239,68,68,0.2)";
             const btnColor = isModUnlocked ? "#10b981" : "#ef4444";
@@ -11722,23 +11839,17 @@ window.renderAdminStudentsList = function() {
             `;
         }).join('');
         
-        const hasUnlocked = Object.values(u.unlockedModules).some(val => val === true);
+        const hasUnlocked = Object.values(unlockedModules).some(val => val === true);
         let statusBadge = hasUnlocked 
             ? `<span style="color:#10b981; font-weight:bold; font-size:0.75rem; background:rgba(16,185,129,0.1); padding:2px 6px; border-radius:4px;">🔓 Learning</span>` 
             : `<span style="color:#ef4444; font-weight:bold; font-size:0.75rem; background:rgba(239,68,68,0.1); padding:2px 6px; border-radius:4px;">🔒 Locked</span>`;
             
-        // Show requested unlock badge
-        if (u.unlockRequested && !hasUnlocked) {
-            statusBadge += `<span style="color:#ffffff; font-weight:bold; font-size:0.7rem; background:#f59e0b; padding:2px 6px; border-radius:4px; margin-left:5px; animation: pulse 1s infinite;">⚠️ REQ ACCESS</span>`;
-        }
-        
         // Calculate average time spent per viewed slide
         let totalSeconds = 0;
-        let viewedSlidesCount = 0;
-        if (u.slideTimeSpent) {
-            Object.keys(u.slideTimeSpent).forEach(k => {
-                totalSeconds += u.slideTimeSpent[k];
-                viewedSlidesCount++;
+        let viewedSlidesCount = u.timeLogs ? u.timeLogs.length : 0;
+        if (u.timeLogs) {
+            u.timeLogs.forEach(l => {
+                totalSeconds += l.secondsSpent;
             });
         }
         const avgTime = viewedSlidesCount > 0 ? Math.round(totalSeconds / viewedSlidesCount) : 0;
@@ -11770,14 +11881,6 @@ window.renderAdminStudentsList = function() {
             `;
         }
         
-        // Count slide revision notes
-        let notesCount = 0;
-        if (u.slideNotes) {
-            Object.keys(u.slideNotes).forEach(k => {
-                if (u.slideNotes[k] && u.slideNotes[k].trim()) notesCount++;
-            });
-        }
-
         return `
             <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 6px; display: flex; flex-direction: column; gap: 0.5rem; text-align: left; font-size: 0.8rem;">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.25rem;">
@@ -11785,11 +11888,8 @@ window.renderAdminStudentsList = function() {
                     <div style="display:flex; align-items:center; gap:2px;">${statusBadge}</div>
                 </div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.4rem; color:#cbd5e1; font-size: 0.75rem; background:rgba(0,0,0,0.15); padding:0.5rem; border-radius:4px;">
-                    <div><b>Name:</b> ${u.fullname || username}</div>
-                    <div><b>Mobile:</b> ${u.mobile || 'N/A'}</div>
-                    <div><b>Year:</b> ${u.year || 'N/A'}</div>
+                    <div><b>Name:</b> ${username}</div>
                     <div><b>Avg View Time:</b> <span style="color:#f59e0b; font-weight:bold;">${timeDisplay}</span></div>
-                </div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:0.5rem; color:#cbd5e1; font-size: 0.75rem; margin-top:0.25rem;">
                     <div>Level: <span style="color:#c084fc; font-weight:bold;">${u.studentLevel || 1}</span></div>
                     <div>XP: <span style="color:#a855f7; font-weight:bold;">${u.studentXP || 0}</span></div>

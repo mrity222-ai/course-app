@@ -3,3 +3,5 @@ dist/
 packager.log
 pack2.log
 .git/
+.env
+database_live.json

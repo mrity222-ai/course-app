@@ -5,11 +5,18 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "server": "node server.js",
     "package": "electron-packager . codewith_ai --platform=win32 --arch=x64 --overwrite"
   },
   "keywords": [],
   "author": "codewith_ai",
   "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mysql2": "^3.9.7"
+  },
   "devDependencies": {
     "electron": "^31.0.0",
     "electron-packager": "^17.1.2",
