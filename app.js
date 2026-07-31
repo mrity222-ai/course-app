@@ -11310,12 +11310,8 @@ window.loadStudentSession = function() {
                     document.getElementById('lock-mobile').innerText = u.mobile || '-';
                     document.getElementById('lock-year').innerText = u.year || '-';
                     
-                    // Setup WhatsApp alert link details
+                    // Setup WhatsApp alert button details
                     const waBtn = document.getElementById('btn-whatsapp-admin');
-                    if (waBtn) {
-                        const msg = `Hello Admin, Mera name *${u.fullname || currentUser}* hai. Maine codewith_ai par register kiya hai (Username: *${currentUser}*, Mobile: *${u.mobile || ''}*). Kripya mera course access unlock kar dijiye.`;
-                        waBtn.href = `https://wa.me/919999999999?text=${encodeURIComponent(msg)}`;
-                    }
                     
                     // Setup Request Unlock button status
                     const reqBtn = document.getElementById('btn-request-unlock');
@@ -11733,4 +11729,25 @@ window.requestAdminUnlock = function() {
         // Rerender lock screen components
         loadStudentSession();
     }
+};
+
+/* --- Obfuscated WhatsApp Admin Connect API --- */
+window.contactAdminWhatsApp = function() {
+    const currentUser = localStorage.getItem('codewith_ai_currentUser');
+    if (!currentUser) return;
+    
+    let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
+    const u = users[currentUser] || {};
+    
+    // Obfuscate phone number components to block web scraper bots
+    const country = "9" + "1";
+    const part1 = "8090";
+    const part2 = "311";
+    const part3 = "359";
+    const phone = country + part1 + part2 + part3; // Compiles to: 918090311359
+    
+    const msg = `Hello Admin, Mera name *${u.fullname || currentUser}* hai. Maine codewith_ai par register kiya hai (Username: *${currentUser}*, Mobile: *${u.mobile || ''}*). Kripya mera course access unlock kar dijiye.`;
+    
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
 };
