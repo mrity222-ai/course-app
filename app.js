@@ -11579,7 +11579,7 @@ window.loadStudentSession = async function() {
 
                 // Check for Admin Course Approval Lock status
                 const unlockedModules = u.unlockedModules || {};
-                const hasUnlockedAny = Object.values(unlockedModules).some(val => val === true);
+                const hasUnlockedAny = Object.values(unlockedModules).some(val => val === true) || u.role === 'admin';
                 
                 if (authGate) authGate.style.display = 'none';
                 if (sessionUser) sessionUser.innerText = `👤 ${currentUser}`;
@@ -12265,6 +12265,7 @@ window.getSlideModuleName = function(index) {
 
 window.isSlideUnlocked = function(index, u) {
     if (!u) return false;
+    if (u.role === 'admin') return true; // Admin has all slides unlocked!
     const moduleName = getSlideModuleName(index);
     
     // Safeguard legacy fallback

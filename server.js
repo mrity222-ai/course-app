@@ -95,6 +95,16 @@ async function runSchemaSQL() {
                 await dbPool.query(stmt);
             }
             console.log("✓ MySQL database tables verified/created.");
+
+            // Seed default admin user if not exists
+            const [adminRows] = await dbPool.query("SELECT * FROM users WHERE username = 'admin'");
+            if (adminRows.length === 0) {
+                await dbPool.query(
+                    `INSERT INTO users (username, password, unlocked_slides, completed_slides, slide_notes, time_logs, alerts, tasks, unlocked_modules, role)
+                     VALUES ('admin', 'codewith_ai', 999, '[]', '{}', '[]', '[]', '[]', '{}', 'admin')`
+                );
+                console.log("👑 Default admin user created in MySQL database!");
+            }
         }
     } catch (err) {
         console.error("❌ Error executing schema.sql:", err.message);
