@@ -9584,15 +9584,15 @@ document.head.appendChild(checkStyle);
 
 /* Application States */
 let currentSlideIndex = 0;
-let completedSlides = JSON.parse(localStorage.getItem('codewith_ai_completed') || '{}');
+let completedSlides = {};
 let customCourses = JSON.parse(localStorage.getItem('codewith_ai_custom_courses') || '[]');
 let savedSnippets = JSON.parse(localStorage.getItem('codewith_ai_snippets') || '[]');
-let slideNotes = JSON.parse(localStorage.getItem('codewith_ai_notes') || '{}');
-let activityLog = JSON.parse(localStorage.getItem('codewith_ai_activity') || '{}');
+let slideNotes = {};
+let activityLog = {};
 
 /* Gamification metrics */
-let studentXP = parseInt(localStorage.getItem('codewith_ai_xp') || '0');
-let studentLevel = parseInt(localStorage.getItem('codewith_ai_level') || '1');
+let studentXP = 0;
+let studentLevel = 1;
 
 /* Speech synthesis states */
 let synth = window.speechSynthesis;
@@ -9689,6 +9689,7 @@ let slidesContainer, btnPrev, btnNext, slideCounter, progressBar, sandboxContain
 
 /* Initialize App */
 function initApp() {
+    loadStudentSession();
     slidesContainer = document.getElementById('slides-container');
     btnPrev = document.getElementById('btn-prev');
     btnNext = document.getElementById('btn-next');
@@ -10248,13 +10249,13 @@ window.filterSidebarSlides = function() {
 window.toggleSlideCompletion = function() {
     const checkbox = document.getElementById('slide-completed-checkbox');
     completedSlides[currentSlideIndex] = checkbox.checked;
-    localStorage.setItem('codewith_ai_completed', JSON.stringify(completedSlides));
     updateDashboard();
     checkCourseCompletion();
     if (checkbox.checked) {
         addStudentXP(20);
         recordActivity(1);
     }
+    saveStudentProgress();
 };
 
 /* Update Dashboard metrics and Badge unlock indicators */
@@ -10878,15 +10879,14 @@ function addStudentXP(amount) {
     if (studentXP >= nextLevelXP) {
         studentXP -= nextLevelXP;
         studentLevel++;
-        localStorage.setItem('codewith_ai_level', studentLevel);
         
         setTimeout(() => {
             alert(`🎉 LEVEL UP! Aap ab Level ${studentLevel} par pahunch gaye hain! Keep coding!`);
             fireConfetti();
         }, 800);
     }
-    localStorage.setItem('codewith_ai_xp', studentXP);
     updateXPBar();
+    saveStudentProgress();
 }
 
 function updateXPBar() {
@@ -11077,15 +11077,15 @@ window.toggleSlideNotes = function() {
 window.saveSlideNote = function() {
     const val = document.getElementById('slide-note-textarea').value;
     slideNotes[currentSlideIndex] = val;
-    localStorage.setItem('codewith_ai_notes', JSON.stringify(slideNotes));
+    saveStudentProgress();
 };
 
 /* Feature 2: GitHub-style Streaks Heatmap Grid calculator */
 window.recordActivity = function(points) {
     const today = new Date().toISOString().split('T')[0];
     activityLog[today] = (activityLog[today] || 0) + points;
-    localStorage.setItem('codewith_ai_activity', JSON.stringify(activityLog));
     renderContributionGrid();
+    saveStudentProgress();
 };
 
 function renderContributionGrid() {
@@ -11130,4 +11130,177 @@ window.downloadSandboxCode = function() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+};
+
+/* --- Student PWA Authentication logic --- */
+let activeAuthTab = 'signin';
+
+window.switchAuthTab = function(tab) {
+    activeAuthTab = tab;
+    const btnSignin = document.getElementById('auth-tab-signin');
+    const btnSignup = document.getElementById('auth-tab-signup');
+    const signupFields = document.getElementById('signup-fields');
+    
+    if (tab === 'signin') {
+        btnSignin.style.background = '#a855f7';
+        btnSignin.style.color = 'white';
+        btnSignup.style.background = 'transparent';
+        btnSignup.style.color = 'rgba(255,255,255,0.6)';
+        signupFields.style.display = 'none';
+    } else {
+        btnSignup.style.background = '#a855f7';
+        btnSignup.style.color = 'white';
+        btnSignin.style.background = 'transparent';
+        btnSignin.style.color = 'rgba(255,255,255,0.6)';
+        signupFields.style.display = 'flex';
+    }
+};
+
+window.handleAuthSubmit = function() {
+    const usernameInput = document.getElementById('auth-username');
+    const passwordInput = document.getElementById('auth-password');
+    const emailInput = document.getElementById('auth-email');
+    const errorMsg = document.getElementById('auth-error-msg');
+    
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value.trim();
+    const email = emailInput.value.trim();
+    
+    if (!username || !password || (activeAuthTab === 'signup' && !email)) {
+        errorMsg.innerText = "Kripya saare fields sahi se bharein!";
+        errorMsg.style.display = 'block';
+        return;
+    }
+    
+    let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
+    
+    if (activeAuthTab === 'signup') {
+        if (users[username]) {
+            errorMsg.innerText = "Username pehle se exists karta hai!";
+            errorMsg.style.display = 'block';
+            return;
+        }
+        
+        users[username] = {
+            username: username,
+            password: password,
+            email: email,
+            currentSlideIndex: 0,
+            completedSlides: {},
+            studentXP: 0,
+            studentLevel: 1,
+            slideNotes: {},
+            activityLog: {}
+        };
+        localStorage.setItem('codewith_ai_users', JSON.stringify(users));
+        activeAuthTab = 'signin';
+        switchAuthTab('signin');
+        errorMsg.innerText = "Registration safal! Ab login karein.";
+        errorMsg.style.color = '#10b981';
+        errorMsg.style.display = 'block';
+        
+        // Reset fields
+        emailInput.value = '';
+    } else {
+        // Sign In
+        if (!users[username] || users[username].password !== password) {
+            errorMsg.innerText = "Galat Username ya Password!";
+            errorMsg.style.color = '#ef4444';
+            errorMsg.style.display = 'block';
+            return;
+        }
+        
+        localStorage.setItem('codewith_ai_currentUser', username);
+        errorMsg.style.display = 'none';
+        
+        // Load User States
+        const u = users[username];
+        currentSlideIndex = u.currentSlideIndex || 0;
+        completedSlides = u.completedSlides || {};
+        studentXP = u.studentXP || 0;
+        studentLevel = u.studentLevel || 1;
+        slideNotes = u.slideNotes || {};
+        activityLog = u.activityLog || {};
+        
+        // Hide gate and show username
+        document.getElementById('student-auth-gate').style.display = 'none';
+        document.getElementById('session-username').innerText = `👤 ${username}`;
+        
+        // Refresh UI components
+        showSlide(currentSlideIndex);
+        updateDashboard();
+        updateXPBar();
+        renderContributionGrid();
+    }
+};
+
+window.loadStudentSession = function() {
+    const currentUser = localStorage.getItem('codewith_ai_currentUser');
+    const authGate = document.getElementById('student-auth-gate');
+    const sessionUser = document.getElementById('session-username');
+    
+    if (currentUser) {
+        let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
+        const u = users[currentUser];
+        if (u) {
+            currentSlideIndex = u.currentSlideIndex || 0;
+            completedSlides = u.completedSlides || {};
+            studentXP = u.studentXP || 0;
+            studentLevel = u.studentLevel || 1;
+            slideNotes = u.slideNotes || {};
+            activityLog = u.activityLog || {};
+            
+            if (authGate) authGate.style.display = 'none';
+            if (sessionUser) sessionUser.innerText = `👤 ${currentUser}`;
+            return;
+        }
+    }
+    
+    // Default locked guest state
+    if (authGate) authGate.style.display = 'flex';
+    if (sessionUser) sessionUser.innerText = `👤 Guest`;
+};
+
+window.saveStudentProgress = function() {
+    const currentUser = localStorage.getItem('codewith_ai_currentUser');
+    if (!currentUser) return;
+    
+    let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
+    if (users[currentUser]) {
+        users[currentUser].currentSlideIndex = currentSlideIndex;
+        users[currentUser].completedSlides = completedSlides;
+        users[currentUser].studentXP = studentXP;
+        users[currentUser].studentLevel = studentLevel;
+        users[currentUser].slideNotes = slideNotes;
+        users[currentUser].activityLog = activityLog;
+        localStorage.setItem('codewith_ai_users', JSON.stringify(users));
+    }
+};
+
+window.logoutStudent = function() {
+    localStorage.removeItem('codewith_ai_currentUser');
+    
+    // Reset local states
+    currentSlideIndex = 0;
+    completedSlides = {};
+    studentXP = 0;
+    studentLevel = 1;
+    slideNotes = {};
+    activityLog = {};
+    
+    // Show auth gate
+    const authGate = document.getElementById('student-auth-gate');
+    if (authGate) authGate.style.display = 'flex';
+    
+    const sessionUser = document.getElementById('session-username');
+    if (sessionUser) sessionUser.innerText = `👤 Guest`;
+    
+    // Clean fields
+    document.getElementById('auth-username').value = '';
+    document.getElementById('auth-password').value = '';
+    
+    showSlide(0);
+    updateDashboard();
+    updateXPBar();
+    renderContributionGrid();
 };

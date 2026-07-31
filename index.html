@@ -29,6 +29,47 @@
     </script>
 </head>
 <body>
+    <!-- Student Auth Gate Modal Overlay -->
+    <div id="student-auth-gate" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(9, 5, 20, 0.96); backdrop-filter: blur(12px); z-index: 100000; display: flex; justify-content: center; align-items: center;">
+        <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; width: 380px; padding: 2rem; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5); text-align: center; font-family: 'Plus Jakarta Sans', sans-serif;">
+            <div style="margin-bottom: 1.5rem;">
+                <span style="font-size: 2.5rem; display: block; margin-bottom: 0.5rem;">🚀</span>
+                <h2 style="color: white; margin: 0; font-family: 'Outfit', sans-serif; font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px;">codewith<span style="color: #a855f7;">_ai</span></h2>
+                <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin-top: 0.25rem;">Learn Web Development in Hinglish</p>
+            </div>
+            
+            <!-- Tabs -->
+            <div style="display: flex; background: rgba(0,0,0,0.3); border-radius: 6px; padding: 3px; margin-bottom: 1.5rem;">
+                <button id="auth-tab-signin" onclick="switchAuthTab('signin')" style="flex: 1; background: #a855f7; border: none; color: white; padding: 0.5rem; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s;">Sign In</button>
+                <button id="auth-tab-signup" onclick="switchAuthTab('signup')" style="flex: 1; background: transparent; border: none; color: rgba(255,255,255,0.6); padding: 0.5rem; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s;">Sign Up</button>
+            </div>
+
+            <!-- Form -->
+            <div id="auth-form" style="display: flex; flex-direction: column; gap: 0.75rem; text-align: left;">
+                <div id="signup-fields" style="display: none; flex-direction: column; gap: 0.75rem;">
+                    <div>
+                        <label style="color: rgba(255,255,255,0.8); font-size: 0.75rem; display: block; margin-bottom: 0.25rem; font-weight: 600;">Email Address</label>
+                        <input type="email" id="auth-email" placeholder="name@example.com" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white; box-sizing: border-box; font-size: 0.85rem; outline: none; transition: 0.2s;">
+                    </div>
+                </div>
+                <div>
+                    <label style="color: rgba(255,255,255,0.8); font-size: 0.75rem; display: block; margin-bottom: 0.25rem; font-weight: 600;">Username</label>
+                    <input type="text" id="auth-username" placeholder="Enter username" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white; box-sizing: border-box; font-size: 0.85rem; outline: none; transition: 0.2s;">
+                </div>
+                <div>
+                    <label style="color: rgba(255,255,255,0.8); font-size: 0.75rem; display: block; margin-bottom: 0.25rem; font-weight: 600;">Password</label>
+                    <input type="password" id="auth-password" placeholder="••••••••" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white; box-sizing: border-box; font-size: 0.85rem; outline: none; transition: 0.2s;">
+                </div>
+                
+                <div id="auth-error-msg" style="color: #ef4444; font-size: 0.75rem; display: none; text-align: center; margin-top: 0.25rem; font-weight: bold;"></div>
+                
+                <button onclick="handleAuthSubmit()" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); border: none; color: white; padding: 0.75rem; border-radius: 6px; font-weight: 700; cursor: pointer; margin-top: 0.5rem; font-size: 0.9rem; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3); transition: 0.2s; font-family: 'Outfit';">
+                    Get Started 🚀
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Top Header -->
     <header class="app-header">
         <div class="logo-container">
@@ -55,6 +96,13 @@
             <div class="sidebar-header">
                 <h3>Web Dev Roadmap</h3>
                 <p>Full-Stack Course</p>
+                <!-- Logged in Student Info -->
+                <div id="student-session-info" style="margin-top: 0.6rem; display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 0.35rem 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); font-size: 0.75rem;">
+                    <span id="session-username" style="font-weight: bold; color: #c084fc; display: flex; align-items: center; gap: 4px;">👤 Guest</span>
+                    <button onclick="logoutStudent()" style="background: transparent; color: #ef4444; border: none; padding: 0; font-size: 0.75rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 2px;">
+                        Logout 🚪
+                    </button>
+                </div>
             </div>
             <div class="sidebar-dashboard">
                 <div class="dashboard-title">My Progress</div>
