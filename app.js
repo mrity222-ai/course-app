@@ -9954,21 +9954,88 @@ function showSlide(index) {
         if (speechBtn) speechBtn.classList.remove('speaking');
     }
     
+    const currentUser = localStorage.getItem('codewith_ai_currentUser');
+    const u = currentUser ? window.currentUserObj : null;
+    const isCurrentSlideUnlocked = isSlideUnlocked(index, u);
+    
+    const lockOverlay = document.getElementById('course-lock-overlay');
+    const slideCard = document.getElementById('slide-card');
+    const sandbox = document.getElementById('sandbox');
+    const sidebarLinks = document.querySelectorAll('.slide-link');
+    
+    if (!isCurrentSlideUnlocked) {
+        currentSlideIndex = index;
+        const currentModule = getSlideModuleName(index);
+        
+        if (slideCard) slideCard.style.display = 'none';
+        if (sandbox) sandbox.style.display = 'none';
+        if (lockOverlay) {
+            lockOverlay.style.display = 'flex';
+            document.getElementById('lock-fullname').innerText = (u && u.fullname) || currentUser;
+            document.getElementById('lock-mobile').innerText = (u && u.mobile) || '-';
+            document.getElementById('lock-year').innerText = (u && u.year) || '-';
+            
+            const lockText = lockOverlay.querySelector('p');
+            if (lockText) {
+                lockText.innerHTML = `Aapka select kiya hua section <b>${currentModule}</b> abhi locked hai. Is module ko unlock karwane ke liye niche WhatsApp button par click karke request send karein.`;
+            }
+            const lockTitle = lockOverlay.querySelector('h2');
+            if (lockTitle) {
+                lockTitle.innerText = `${currentModule} Locked 🔒`;
+            }
+            
+            const waBtn = document.getElementById('btn-whatsapp-admin');
+            if (waBtn) {
+                const msg = `Hello Admin, Mera name *${(u && u.fullname) || currentUser}* hai. Mera username *${currentUser}* hai. Kripya mera *${currentModule}* access unlock kar dijiye.`;
+                waBtn.href = `https://wa.me/918090311359?text=${encodeURIComponent(msg)}`;
+            }
+            
+            const reqBtn = document.getElementById('btn-request-unlock');
+            if (reqBtn && u) {
+                if (u.unlockRequested) {
+                    reqBtn.innerText = "✓ Request Sent!";
+                    reqBtn.disabled = true;
+                    reqBtn.style.background = "rgba(255,255,255,0.15)";
+                    reqBtn.style.color = "rgba(255,255,255,0.4)";
+                    reqBtn.style.cursor = "not-allowed";
+                } else {
+                    reqBtn.innerText = "📧 Request Unlock";
+                    reqBtn.disabled = false;
+                    reqBtn.style.background = "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)";
+                    reqBtn.style.color = "white";
+                    reqBtn.style.cursor = "pointer";
+                }
+            }
+        }
+        
+        // Highlight active link in sidebar even if locked
+        sidebarLinks.forEach(link => {
+            if (parseInt(link.getAttribute('data-slide')) === index) {
+                link.classList.add('active');
+                link.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } else {
+                link.classList.remove('active');
+            }
+        });
+        return;
+    }
+    
+    // Otherwise, it is unlocked
+    if (slideCard) slideCard.style.display = 'block';
+    if (lockOverlay) lockOverlay.style.display = 'none';
+
     const activeSlide = document.querySelector('.slide-item-container.active');
     if (activeSlide) activeSlide.classList.remove('active');
     
     const targetSlide = document.getElementById(`slide-item-${index}`);
     if (targetSlide) targetSlide.classList.add('active');
-
+ 
     currentSlideIndex = index;
     
     slideCounter.innerText = `Slide ${index + 1} of ${slidesData.length}`;
     const progressPercent = ((index + 1) / slidesData.length) * 100;
     progressBar.style.width = `${progressPercent}%`;
 
-    const currentUser = localStorage.getItem('codewith_ai_currentUser');
-    const u = currentUser ? window.currentUserObj : null;
-    
     btnPrev.disabled = index === 0;
     
     if (typeof initializeSlideTimer === 'function') {
@@ -11575,8 +11642,8 @@ window.loadStudentSession = async function() {
                 }
 
                 // Check for Admin Course Approval Lock status
-                const unlockedModules = u.unlockedModules || {};
-                const hasUnlockedAny = Object.values(unlockedModules).some(val => val === true) || u.role === 'admin';
+                const currentModule = getSlideModuleName(currentSlideIndex);
+                const isCurrentSlideUnlocked = isSlideUnlocked(currentSlideIndex, u);
                 
                 const header = document.querySelector('.app-header');
                 const mainContainer = document.querySelector('.main-container');
@@ -11585,28 +11652,13 @@ window.loadStudentSession = async function() {
                 if (authGate) authGate.style.display = 'none';
                 if (sessionUser) sessionUser.innerText = `👤 ${currentUser}`;
                 
-                if (hasUnlockedAny) {
+                if (isCurrentSlideUnlocked) {
                     if (slideCard) slideCard.style.display = 'block';
                     if (lockOverlay) lockOverlay.style.display = 'none';
                     if (nav) {
                         nav.style.pointerEvents = 'auto';
                         nav.style.opacity = '1';
                     }
-                    
-                    // If student is positioned on a locked module, move them to the first unlocked slide
-                    const currentModule = getSlideModuleName(currentSlideIndex);
-                    if (!unlockedModules[currentModule]) {
-                        let targetIdx = 0;
-                        for (let i = 0; i < slidesData.length; i++) {
-                            const modName = getSlideModuleName(i);
-                            if (unlockedModules[modName]) {
-                                targetIdx = i;
-                                break;
-                            }
-                        }
-                        currentSlideIndex = targetIdx;
-                    }
-                    
                     showSlide(currentSlideIndex);
                 } else {
                     if (slideCard) slideCard.style.display = 'none';
@@ -11617,10 +11669,20 @@ window.loadStudentSession = async function() {
                         document.getElementById('lock-mobile').innerText = u.mobile || '-';
                         document.getElementById('lock-year').innerText = u.year || '-';
                         
+                        // Update overlay lock text specifically for the locked module
+                        const lockText = lockOverlay.querySelector('p');
+                        if (lockText) {
+                            lockText.innerHTML = `Aapka select kiya hua section <b>${currentModule}</b> abhi locked hai. Is module ko unlock karwane ke liye niche WhatsApp button par click karke request send karein.`;
+                        }
+                        const lockTitle = lockOverlay.querySelector('h2');
+                        if (lockTitle) {
+                            lockTitle.innerText = `${currentModule} Locked 🔒`;
+                        }
+                        
                         // Setup WhatsApp alert link details
                         const waBtn = document.getElementById('btn-whatsapp-admin');
                         if (waBtn) {
-                            const msg = `Hello Admin, Mera name *${u.fullname || currentUser}* hai. Maine codewith_ai par register kiya hai (Username: *${currentUser}*). Kripya mera course access unlock kar dijiye.`;
+                            const msg = `Hello Admin, Mera name *${u.fullname || currentUser}* hai. Mera username *${currentUser}* hai. Kripya mera *${currentModule}* access unlock kar dijiye.`;
                             waBtn.href = `https://wa.me/918090311359?text=${encodeURIComponent(msg)}`;
                         }
                         
@@ -11643,8 +11705,8 @@ window.loadStudentSession = async function() {
                         }
                     }
                     if (nav) {
-                        nav.style.pointerEvents = 'none';
-                        nav.style.opacity = '0.4';
+                        nav.style.pointerEvents = 'auto';
+                        nav.style.opacity = '1';
                     }
                 }
                 
@@ -12187,10 +12249,10 @@ window.updateSidebarLocks = function() {
         // Fallback checks
         let isUnlocked = false;
         if (u) {
-            if (u.unlockedModules) {
-                isUnlocked = u.unlockedModules[moduleName] === true;
-            } else if (u.unlocked === true && moduleName === "HTML Course") {
+            if (moduleName === "HTML Course") {
                 isUnlocked = true;
+            } else if (u.unlockedModules) {
+                isUnlocked = u.unlockedModules[moduleName] === true;
             }
         } else {
             // Guest users are locked
@@ -12216,10 +12278,13 @@ window.updateSidebarLocks = function() {
             
             if (isUnlocked) {
                 item.classList.remove('locked-module');
-                lockBadge.innerText = ''; // Clear indicator when unlocked
+                lockBadge.innerHTML = ''; // Clear indicator when unlocked
             } else {
                 item.classList.add('locked-module');
-                lockBadge.innerText = '🔒'; // Display padlock when locked
+                // Create a direct WhatsApp unlock request button next to the accordion header
+                const msg = `Hello Admin, Mera name *${(u && u.fullname) || currentUser}* hai. Mera username *${currentUser}* hai. Kripya mera *${moduleName}* access unlock kar dijiye.`;
+                const waUrl = `https://wa.me/918090311359?text=${encodeURIComponent(msg)}`;
+                lockBadge.innerHTML = `<a href="${waUrl}" target="_blank" onclick="event.stopPropagation();" title="Unlock via WhatsApp" style="text-decoration:none; display:inline-flex; align-items:center; gap:2px; font-weight:bold; background:#25d366; color:black; font-size:0.65rem; padding:3px 6px; border-radius:4px; line-height:1; border:1px solid #1ebd56; box-shadow:0 2px 4px rgba(0,0,0,0.2);">🟢 Unlock</a>`;
             }
         }
     });
@@ -12316,15 +12381,10 @@ window.isSlideUnlocked = function(index, u) {
     if (u.role === 'admin') return true; // Admin has all slides unlocked!
     const moduleName = getSlideModuleName(index);
     
-    // Safeguard legacy fallback
-    if (!u.unlockedModules) {
-        if (u.unlocked === true && moduleName === "HTML Course") {
-            return true;
-        }
-        return false;
-    }
+    // HTML Course is unlocked by default for everyone!
+    if (moduleName === "HTML Course") return true;
     
-    // If the module itself is unlocked, ALL slides inside it are unlocked!
+    // Otherwise, check unlockedModules
     return !!(u.unlockedModules && u.unlockedModules[moduleName] === true);
 };
 
