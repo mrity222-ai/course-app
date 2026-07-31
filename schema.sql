@@ -1,6 +1,4 @@
 -- MySQL Database Schema for codewith_ai Platform
-CREATE DATABASE IF NOT EXISTS codewith_ai_db;
-USE codewith_ai_db;
 
 -- 1. Users table (stores student registrations, credentials, unlocked levels, tasks, and progress logs)
 CREATE TABLE IF NOT EXISTS users (
