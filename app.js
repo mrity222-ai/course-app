@@ -9891,8 +9891,13 @@ function showSlide(index) {
     const progressPercent = ((index + 1) / slidesData.length) * 100;
     progressBar.style.width = `${progressPercent}%`;
 
+    const currentUser = localStorage.getItem('codewith_ai_currentUser');
+    let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
+    const u = currentUser ? users[currentUser] : null;
+    const isNextUnlocked = (index + 1) < slidesData.length && isSlideUnlocked(index + 1, u);
+    
     btnPrev.disabled = index === 0;
-    btnNext.disabled = (index === slidesData.length - 1) || (!completedSlides[index]);
+    btnNext.disabled = (index === slidesData.length - 1) || (!completedSlides[index]) || (!isNextUnlocked);
 
     sidebarLinks.forEach(link => {
         if (parseInt(link.getAttribute('data-slide')) === index) {
@@ -10023,11 +10028,22 @@ function setupKeyboardControls() {
         }
         
         if (e.key === 'ArrowRight') {
-            const isUnlocked = completedSlides[currentSlideIndex] === true;
-            if (isUnlocked) {
+            const nextIdx = currentSlideIndex + 1;
+            const currentUser = localStorage.getItem('codewith_ai_currentUser');
+            let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
+            const u = currentUser ? users[currentUser] : null;
+            
+            const isNextUnlocked = nextIdx < slidesData.length && isSlideUnlocked(nextIdx, u);
+            if (isNextUnlocked) {
                 nextSlide();
-            } else if (currentSlideIndex < slidesData.length - 1) {
-                alert("🔒 Agla level unlock karne ke liye pehle is slide ko 'Pura Kiya (Completed)' checkmark mark karein!");
+            } else if (nextIdx < slidesData.length) {
+                const nextMod = getSlideModuleName(nextIdx);
+                const isModLocked = u && u.unlockedModules && !u.unlockedModules[nextMod];
+                if (isModLocked) {
+                    alert(`🔒 Agla module (${nextMod}) aapke instructor/admin dwara locked hai!`);
+                } else {
+                    alert("🔒 Agla level unlock karne ke liye pehle is slide ko 'Pura Kiya (Completed)' checkmark mark karein!");
+                }
             }
         } else if (e.key === 'ArrowLeft') {
             prevSlide();
@@ -10273,6 +10289,15 @@ window.toggleSlideCompletion = function() {
         addStudentXP(20);
         recordActivity(1);
     }
+    updateSidebarLocks();
+    
+    // Dynamically update next button state
+    const currentUser = localStorage.getItem('codewith_ai_currentUser');
+    let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
+    const u = currentUser ? users[currentUser] : null;
+    const isNextUnlocked = (currentSlideIndex + 1) < slidesData.length && isSlideUnlocked(currentSlideIndex + 1, u);
+    btnNext.disabled = (currentSlideIndex === slidesData.length - 1) || (!checkbox.checked) || (!isNextUnlocked);
+    
     saveStudentProgress();
 };
 
@@ -11443,10 +11468,10 @@ window.renderAdminStudentsList = function() {
     const users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
     const userKeys = Object.keys(users);
     
-    // Sort keys so that those with unlockRequested === true AND unlocked !== true go to the very top!
+    // Sort keys so that those with unlockRequested === true go to the very top!
     userKeys.sort((a, b) => {
-        const reqA = users[a].unlockRequested && !users[a].unlocked ? 1 : 0;
-        const reqB = users[b].unlockRequested && !users[b].unlocked ? 1 : 0;
+        const reqA = users[a].unlockRequested ? 1 : 0;
+        const reqB = users[b].unlockRequested ? 1 : 0;
         return reqB - reqA;
     });
     
@@ -11481,15 +11506,32 @@ window.renderAdminStudentsList = function() {
         opt.innerText = username;
         selectTarget.appendChild(opt);
         
-        const lockBtnText = u.unlocked ? "🔒 Lock Course" : "🔓 Unlock Course";
-        const lockBtnBg = u.unlocked ? "#ef4444" : "#10b981";
+        // Setup modules access control panel list
+        const studentModules = getStudentCourseModules();
+        if (!u.unlockedModules) u.unlockedModules = {};
         
-        let statusBadge = u.unlocked 
-            ? `<span style="color:#10b981; font-weight:bold; font-size:0.75rem; background:rgba(16,185,129,0.1); padding:2px 6px; border-radius:4px;">🔓 Unlocked</span>` 
+        const modulesHTML = studentModules.map(mName => {
+            const isModUnlocked = u.unlockedModules[mName] === true;
+            const btnBg = isModUnlocked ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.08)";
+            const btnBorder = isModUnlocked ? "rgba(16,185,129,0.35)" : "rgba(239,68,68,0.2)";
+            const btnColor = isModUnlocked ? "#10b981" : "#ef4444";
+            const lockIcon = isModUnlocked ? "🔓" : "🔒";
+            const displayName = mName.replace(" Course", "").replace(" Guide", "");
+            
+            return `
+                <button onclick="toggleModuleLockForStudent('${username}', '${mName}')" style="background:${btnBg}; border:1px solid ${btnBorder}; color:${btnColor}; padding:0.25rem 0.4rem; border-radius:4px; font-size:0.7rem; font-weight:bold; cursor:pointer; text-align:center; transition:0.2s; outline:none; white-space:nowrap;">
+                    ${lockIcon} ${displayName}
+                </button>
+            `;
+        }).join('');
+        
+        const hasUnlocked = Object.values(u.unlockedModules).some(val => val === true);
+        let statusBadge = hasUnlocked 
+            ? `<span style="color:#10b981; font-weight:bold; font-size:0.75rem; background:rgba(16,185,129,0.1); padding:2px 6px; border-radius:4px;">🔓 Learning</span>` 
             : `<span style="color:#ef4444; font-weight:bold; font-size:0.75rem; background:rgba(239,68,68,0.1); padding:2px 6px; border-radius:4px;">🔒 Locked</span>`;
             
-        // Show glowing requested unlock badge if they clicked "Request Unlock"
-        if (u.unlockRequested && !u.unlocked) {
+        // Show requested unlock badge
+        if (u.unlockRequested && !hasUnlocked) {
             statusBadge += `<span style="color:#ffffff; font-weight:bold; font-size:0.7rem; background:#f59e0b; padding:2px 6px; border-radius:4px; margin-left:5px; animation: pulse 1s infinite;">⚠️ REQ ACCESS</span>`;
         }
         
@@ -11505,16 +11547,19 @@ window.renderAdminStudentsList = function() {
                     <div><b>Year:</b> ${u.year || 'N/A'}</div>
                     <div><b>Email:</b> ${u.email || 'N/A'}</div>
                 </div>
-                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:0.5rem; color:#cbd5e1; font-size: 0.75rem;">
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:0.5rem; color:#cbd5e1; font-size: 0.75rem; margin-top:0.25rem;">
                     <div>Level: <span style="color:#c084fc; font-weight:bold;">${u.studentLevel || 1}</span></div>
                     <div>XP: <span style="color:#a855f7; font-weight:bold;">${u.studentXP || 0}</span></div>
                     <div>Progress: <span style="color:#10b981; font-weight:bold;">${pct}%</span></div>
                 </div>
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.25rem; font-size: 0.75rem;">
-                    <span style="color: #94a3b8;">Active Slide: Slide ${(u.currentSlideIndex || 0) + 1}</span>
-                    <button onclick="toggleStudentLock('${username}')" class="console-clear-btn" style="background:${lockBtnBg}; border-color:${lockBtnBg}; color:${u.unlocked ? 'white' : 'black'}; padding:0.25rem 0.5rem; font-size:0.7rem; font-weight:bold;">
-                        ${lockBtnText}
-                    </button>
+                <div style="color: #94a3b8; font-size: 0.75rem; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:0.4rem;">
+                    Active Position: <span style="color: #38bdf8;">Slide ${(u.currentSlideIndex || 0) + 1} (${slidesData[u.currentSlideIndex || 0]?.title || "HTML"})</span>
+                </div>
+                <div style="margin-top: 0.25rem;">
+                    <div style="color:#ffffff; font-size:0.75rem; margin-bottom:0.35rem; font-weight:bold;">Course Unlock Control Matrix:</div>
+                    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:0.35rem; width:100%;">
+                        ${modulesHTML}
+                    </div>
                 </div>
             </div>
         `;
@@ -11523,19 +11568,29 @@ window.renderAdminStudentsList = function() {
     container.innerHTML = tableRows;
 };
 
-window.toggleStudentLock = function(username) {
+window.toggleModuleLockForStudent = function(username, moduleName) {
     let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
     if (users[username]) {
-        users[username].unlocked = !users[username].unlocked;
-        if (users[username].unlocked) {
-            users[username].unlockRequested = false; // Reset unlock request flag
+        if (!users[username].unlockedModules) {
+            users[username].unlockedModules = {};
         }
+        
+        const isCurrentUnlocked = users[username].unlockedModules[moduleName] === true;
+        users[username].unlockedModules[moduleName] = !isCurrentUnlocked;
+        
+        // If they unlocked at least one module, clear request status
+        const hasUnlocked = Object.values(users[username].unlockedModules).some(val => val === true);
+        if (hasUnlocked) {
+            users[username].unlockRequested = false;
+        }
+        
         localStorage.setItem('codewith_ai_users', JSON.stringify(users));
         renderAdminStudentsList();
         
-        // If the targeted student is currently logged in, refresh view instantly
+        // Refresh active student session view instantly if active in this browser
         if (localStorage.getItem('codewith_ai_currentUser') === username) {
             loadStudentSession();
+            updateSidebarLocks();
         }
     }
 };
@@ -11750,4 +11805,59 @@ window.contactAdminWhatsApp = function() {
     
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank');
+};
+
+/* --- Progressive Granular Module Lock Utilities --- */
+const courseModulesList = [
+    "HTML Course",
+    "CSS Course",
+    "JavaScript Course",
+    "React Course",
+    "Backend Course",
+    "Advanced Backend & AI",
+    "VPS Hosting Guide",
+    "Next.js Course"
+];
+
+window.getStudentCourseModules = function() {
+    const list = [...courseModulesList];
+    customCourses.forEach(c => {
+        if (!list.includes(c.title)) list.push(c.title);
+    });
+    return list;
+};
+
+window.getSlideModuleName = function(index) {
+    const slide = slidesData[index];
+    if (!slide) return "HTML Course";
+    
+    // Check custom courses first
+    const customMatch = customCourses.find(c => c.slides.includes(slide));
+    if (customMatch) return customMatch.title;
+    
+    if (index >= 0 && index < 26) return "HTML Course";
+    if (index >= 26 && index < 66) return "CSS Course";
+    if (index >= 66 && index < 104) return "JavaScript Course";
+    if (index >= 104 && index < 121) return "React Course";
+    if (index >= 121 && index < 143) return "Backend Course";
+    if (index >= 143 && index < 267) return "Advanced Backend & AI";
+    if (index >= 267 && index < 280) return "VPS Hosting Guide";
+    if (index >= 280) return "Next.js Course";
+    return "HTML Course";
+};
+
+window.isSlideUnlocked = function(index, u) {
+    if (!u) return false;
+    const moduleName = getSlideModuleName(index);
+    
+    // If the module itself is locked, this slide is locked!
+    if (!u.unlockedModules || !u.unlockedModules[moduleName]) return false;
+    
+    // Progressive Lock within the module
+    if (index === 0) return true;
+    
+    const prevModuleName = getSlideModuleName(index - 1);
+    if (moduleName !== prevModuleName) return true; // Start of a new module is unlocked by default
+    
+    return u.completedSlides && u.completedSlides[index - 1] === true;
 };
