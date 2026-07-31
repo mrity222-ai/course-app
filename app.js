@@ -9700,7 +9700,7 @@ let slidesContainer, btnPrev, btnNext, slideCounter, progressBar, sandboxContain
 
 /* Initialize App */
 function initApp() {
-    loadStudentSession();
+    // 1. First assign all required global elements
     slidesContainer = document.getElementById('slides-container');
     btnPrev = document.getElementById('btn-prev');
     btnNext = document.getElementById('btn-next');
@@ -9711,15 +9711,20 @@ function initApp() {
     sandboxPreview = document.getElementById('sandbox-preview');
     sidebarLinks = document.querySelectorAll('.slide-link');
 
-    // Merge custom courses from local storage
+    // 2. Merge custom courses from local storage
     customCourses.forEach(c => {
         slidesData.push(...c.slides);
     });
 
+    // 3. Render all slides and dynamic structures
     renderAllSlides();
     renderCustomAccordions();
+    
+    // 4. Initialize session and locks (which calls showSlide safely now!)
+    loadStudentSession();
     updateSidebarLocks();
-    showSlide(0);
+    
+    // 5. Setup keyboard handlers and dashboard updates
     setupKeyboardControls();
     updateDashboard();
     updateXPBar();
