@@ -11459,7 +11459,7 @@ window.sendAdminNotification = function() {
     }
 };
 
-window.checkStudentAlerts = function() {
+window.checkStudentAlerts = function(forceShow = false) {
     const currentUser = localStorage.getItem('codewith_ai_currentUser');
     if (!currentUser) return;
     
@@ -11471,28 +11471,35 @@ window.checkStudentAlerts = function() {
     const tasksContent = document.getElementById('student-tasks-content');
     const alertsModal = document.getElementById('student-alerts-modal');
     
-    // Check for unread alerts
+    // Check for alerts
     const alertsList = u.adminAlerts || [];
     const unreadAlerts = alertsList.filter(a => !a.read);
+    const alertsToDisplay = forceShow ? alertsList : unreadAlerts;
     
     // Check for assigned tasks
     const tasksList = u.assignedTasks || [];
     
-    if (unreadAlerts.length === 0 && tasksList.length === 0) return;
+    if (unreadAlerts.length === 0 && tasksList.length === 0 && !forceShow) return;
     
     if (alertsContent) {
-        if (unreadAlerts.length > 0) {
+        if (alertsToDisplay.length > 0) {
             alertsContent.parentElement.querySelector('h3').style.display = 'block';
             alertsContent.style.display = 'block';
-            alertsContent.innerHTML = unreadAlerts.map(a => `
+            alertsContent.innerHTML = alertsToDisplay.map(a => `
                 <div style="margin-bottom:0.5rem; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:0.5rem;">
                     <span style="font-size:0.7rem; color:var(--accent-blue); display:block; font-weight:bold;">${a.date}</span>
                     <span>${a.text}</span>
                 </div>
             `).join('');
         } else {
-            alertsContent.style.display = 'none';
-            alertsContent.parentElement.querySelector('h3').style.display = 'none';
+            if (forceShow) {
+                alertsContent.parentElement.querySelector('h3').style.display = 'block';
+                alertsContent.style.display = 'block';
+                alertsContent.innerHTML = `<div style="color: #94a3b8; font-size:0.8rem;">No messages from instructor.</div>`;
+            } else {
+                alertsContent.style.display = 'none';
+                alertsContent.parentElement.querySelector('h3').style.display = 'none';
+            }
         }
     }
     
@@ -11509,12 +11516,17 @@ window.checkStudentAlerts = function() {
                 </div>
             `).join('');
         } else {
-            tasksContent.style.display = 'none';
-            tasksContent.parentElement.querySelector('h4').style.display = 'none';
+            if (forceShow) {
+                tasksContent.parentElement.querySelector('h4').style.display = 'block';
+                tasksContent.style.display = 'flex';
+                tasksContent.innerHTML = `<div style="color: #94a3b8; font-size:0.8rem;">No assigned tasks.</div>`;
+            } else {
+                tasksContent.style.display = 'none';
+                tasksContent.parentElement.querySelector('h4').style.display = 'none';
+            }
         }
     }
     
-    // Only show if there are unread warnings OR if they have tasks to view
     if (alertsModal) alertsModal.classList.add('active');
 };
 
