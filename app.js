@@ -9821,7 +9821,7 @@ function renderCustomAccordions() {
             const slideNum = parseInt(e.target.getAttribute('data-slide'));
             if (slideNum > currentSlideIndex && typeof activeSlideTimeLeft !== 'undefined' && activeSlideTimeLeft > 0) {
                 const hasSandbox = !!slidesData[currentSlideIndex]?.sandboxCode;
-                alert(`⚠️ Kripya is slide ko dhyaan se padhein. Agli slide par jaane ke liye aapko kam se kam ${hasSandbox ? "8" : "5"} minute padhna hoga pehle!`);
+                alert(`⚠️ Kripya is slide ko dhyaan se padhein. Agli slide par jaane ke liye aapko kam se kam ${hasSandbox ? "5" : "2"} minute padhna hoga pehle!`);
                 return;
             }
             showSlide(slideNum);
@@ -10082,7 +10082,7 @@ function setupKeyboardControls() {
             
             if (typeof activeSlideTimeLeft !== 'undefined' && activeSlideTimeLeft > 0) {
                 const hasSandbox = !!slidesData[currentSlideIndex]?.sandboxCode;
-                alert(`⚠️ Kripya is slide ko dhyaan se padhein. Agli slide par jaane ke liye aapko kam se kam ${hasSandbox ? "8" : "5"} minute padhna hoga pehle!`);
+                alert(`⚠️ Kripya is slide ko dhyaan se padhein. Agli slide par jaane ke liye aapko kam se kam ${hasSandbox ? "5" : "2"} minute padhna hoga pehle!`);
                 return;
             }
             
@@ -12121,7 +12121,7 @@ window.initializeSlideTimer = function(index) {
     
     const slide = slidesData[index];
     const hasSandbox = !!(slide && slide.sandboxCode);
-    const requiredDuration = hasSandbox ? 480 : 300; // 8 mins (480s) vs 5 mins (300s)
+    const requiredDuration = hasSandbox ? 300 : 120; // 5 mins (300s) vs 2 mins (120s)
     
     const spentSoFar = (u.slideTimeSpent && u.slideTimeSpent[index]) || 0;
     window.activeSlideTimeLeft = Math.max(0, requiredDuration - spentSoFar);
