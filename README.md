@@ -13,6 +13,17 @@ A premium, interactive Single Page Application (SPA) roadmap designed for learni
 
 ---
 
+## 🛠️ CLI Course Compiler (SuperOwner Utility)
+If you want to compile custom course PDF files directly from the command line:
+1. Run the Node.js compiler script:
+   ```bash
+   node superowner_course_compiler.js
+   ```
+2. Enter the absolute path of the PDF, the Course Title (e.g., "React Course"), and the lowercase Course ID (e.g., "react-dev").
+3. The script will parse the PDF and inject the slide data directly into the database!
+
+---
+
 ## ⚡ Main Features
 - **🤖 AI Code Mentor**: Conversational Hinglish chatbot offering typewriter-animated hints and code explanations.
 - **🏆 XP Leveling**: Gamification indicators. Completing modules rewards points to level up.
