@@ -9902,6 +9902,11 @@ function escapeHTML(str) {
 function showSlide(index) {
     if (index < 0 || index >= slidesData.length) return;
     
+    // Record time spent on the slide we are leaving
+    if (typeof recordSlideTimeSpent === 'function') {
+        recordSlideTimeSpent();
+    }
+    
     if (isSpeaking) {
         synth.cancel();
         isSpeaking = false;
@@ -11455,6 +11460,11 @@ window.saveStudentProgress = function() {
 };
 
 window.logoutStudent = function() {
+    // Record time spent on active slide before logging out
+    if (typeof recordSlideTimeSpent === 'function') {
+        recordSlideTimeSpent();
+    }
+    
     localStorage.removeItem('codewith_ai_currentUser');
     
     // Reset local states
@@ -11596,6 +11606,52 @@ window.renderAdminStudentsList = function() {
             statusBadge += `<span style="color:#ffffff; font-weight:bold; font-size:0.7rem; background:#f59e0b; padding:2px 6px; border-radius:4px; margin-left:5px; animation: pulse 1s infinite;">⚠️ REQ ACCESS</span>`;
         }
         
+        // Calculate average time spent per viewed slide
+        let totalSeconds = 0;
+        let viewedSlidesCount = 0;
+        if (u.slideTimeSpent) {
+            Object.keys(u.slideTimeSpent).forEach(k => {
+                totalSeconds += u.slideTimeSpent[k];
+                viewedSlidesCount++;
+            });
+        }
+        const avgTime = viewedSlidesCount > 0 ? Math.round(totalSeconds / viewedSlidesCount) : 0;
+        let timeDisplay = `${avgTime}s`;
+        if (avgTime > 60) {
+            const mins = Math.floor(avgTime / 60);
+            const secs = avgTime % 60;
+            timeDisplay = `${mins}m ${secs}s`;
+        }
+        
+        let speedAlertHTML = '';
+        if (completedCount > 1 && avgTime > 0 && avgTime < 15) {
+            speedAlertHTML = `
+                <div style="background: rgba(239, 68, 68, 0.12); border: 1px dashed #ef4444; color: #f87171; padding: 0.35rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-top: 0.25rem; display: flex; align-items: center; gap: 4px;">
+                    ⚠️ Speed-Clicking Alert: Baccha bina padhe bas tick karke aage badh raha hai!
+                </div>
+            `;
+        } else if (completedCount > 0 && avgTime >= 15) {
+            speedAlertHTML = `
+                <div style="background: rgba(16, 185, 129, 0.1); border: 1px dashed #10b981; color: #34d399; padding: 0.35rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-top: 0.25rem; display: flex; align-items: center; gap: 4px;">
+                    ✓ Genuinely padh raha hai (Avg Time: ${timeDisplay} / slide)
+                </div>
+            `;
+        } else {
+            speedAlertHTML = `
+                <div style="background: rgba(255, 255, 255, 0.04); border: 1px dashed rgba(255,255,255,0.08); color: #94a3b8; padding: 0.35rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-style: italic; margin-top: 0.25rem; text-align: center;">
+                    No reading history recorded yet.
+                </div>
+            `;
+        }
+        
+        // Count slide revision notes
+        let notesCount = 0;
+        if (u.slideNotes) {
+            Object.keys(u.slideNotes).forEach(k => {
+                if (u.slideNotes[k] && u.slideNotes[k].trim()) notesCount++;
+            });
+        }
+
         return `
             <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 6px; display: flex; flex-direction: column; gap: 0.5rem; text-align: left; font-size: 0.8rem;">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.25rem;">
@@ -11606,16 +11662,17 @@ window.renderAdminStudentsList = function() {
                     <div><b>Name:</b> ${u.fullname || username}</div>
                     <div><b>Mobile:</b> ${u.mobile || 'N/A'}</div>
                     <div><b>Year:</b> ${u.year || 'N/A'}</div>
-                    <div><b>Email:</b> ${u.email || 'N/A'}</div>
+                    <div><b>Avg View Time:</b> <span style="color:#f59e0b; font-weight:bold;">${timeDisplay}</span></div>
                 </div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:0.5rem; color:#cbd5e1; font-size: 0.75rem; margin-top:0.25rem;">
                     <div>Level: <span style="color:#c084fc; font-weight:bold;">${u.studentLevel || 1}</span></div>
                     <div>XP: <span style="color:#a855f7; font-weight:bold;">${u.studentXP || 0}</span></div>
-                    <div>Progress: <span style="color:#10b981; font-weight:bold;">${pct}%</span></div>
+                    <div>Revision Notes: <span style="color:#38bdf8; font-weight:bold;">${notesCount}</span></div>
                 </div>
                 <div style="color: #94a3b8; font-size: 0.75rem; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:0.4rem;">
                     Active Position: <span style="color: #38bdf8;">Slide ${(u.currentSlideIndex || 0) + 1} (${slidesData[u.currentSlideIndex || 0]?.title || "HTML"})</span>
                 </div>
+                ${speedAlertHTML}
                 <div style="margin-top: 0.25rem;">
                     <div style="color:#ffffff; font-size:0.75rem; margin-bottom:0.35rem; font-weight:bold;">Course Unlock Control Matrix:</div>
                     <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:0.35rem; width:100%;">
@@ -11988,4 +12045,37 @@ window.addEventListener('storage', (e) => {
         loadStudentSession();
         updateSidebarLocks();
     }
+});
+
+/* --- Slide Reading Duration Auditing Engine --- */
+let slideStartTime = Date.now();
+
+window.recordSlideTimeSpent = function() {
+    const currentUser = localStorage.getItem('codewith_ai_currentUser');
+    if (!currentUser) return;
+    
+    const now = Date.now();
+    const secondsSpent = Math.round((now - slideStartTime) / 1000);
+    
+    if (secondsSpent > 1) { // Ignore rapid glitch clicks < 1s
+        let users = JSON.parse(localStorage.getItem('codewith_ai_users') || '{}');
+        const u = users[currentUser];
+        if (u) {
+            if (!u.slideTimeSpent) u.slideTimeSpent = {};
+            const existingTime = u.slideTimeSpent[currentSlideIndex] || 0;
+            u.slideTimeSpent[currentSlideIndex] = existingTime + secondsSpent;
+            
+            // Record last active timestamp
+            u.lastActiveTimestamp = now;
+            
+            users[currentUser] = u;
+            localStorage.setItem('codewith_ai_users', JSON.stringify(users));
+        }
+    }
+    
+    slideStartTime = now;
+};
+
+window.addEventListener('beforeunload', () => {
+    recordSlideTimeSpent();
 });
