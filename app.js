@@ -9596,6 +9596,7 @@ document.head.appendChild(checkStyle);
 /* Application States */
 let currentSlideIndex = 0;
 let completedSlides = {};
+let isInitialLoad = true;
 let customCourses = JSON.parse(localStorage.getItem('codewith_ai_custom_courses') || '[]');
 let savedSnippets = JSON.parse(localStorage.getItem('codewith_ai_snippets') || '[]');
 let slideNotes = {};
@@ -9729,6 +9730,11 @@ function initApp() {
     updateDashboard();
     updateXPBar();
     renderContributionGrid();
+    
+    // Set initial load to false after page renders and first slide is loaded
+    setTimeout(() => {
+        isInitialLoad = false;
+    }, 100);
     
     // Bind console messages listener
     window.addEventListener('message', (e) => {
@@ -9941,14 +9947,16 @@ function showSlide(index) {
         activeAccordionIndex = 8 + customCourses.findIndex(c => c.slides.includes(slidesData[index]));
     }
     
-    const accordionItems = document.querySelectorAll('.accordion-item');
-    accordionItems.forEach((item, idx) => {
-        if (idx === activeAccordionIndex) {
-            item.classList.add('active');
-        } else {
-            item.classList.remove('active');
-        }
-    });
+    if (!isInitialLoad) {
+        const accordionItems = document.querySelectorAll('.accordion-item');
+        accordionItems.forEach((item, idx) => {
+            if (idx === activeAccordionIndex) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+    }
 
     const currentSlideData = slidesData[index];
     if (currentSlideData.sandboxCode) {
