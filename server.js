@@ -842,6 +842,36 @@ app.post('/api/config/sarvam_key', async (req, res) => {
     }
 });
 
+// Database status check debug route
+app.get('/api/debug/db-status', async (req, res) => {
+    try {
+        if (!isMySQL) {
+            return res.json({ 
+                status: "FALLBACK_JSON", 
+                message: "Running on JSON database fallback.",
+                dbFileExists: fs.existsSync(JSON_DB_PATH) 
+            });
+        }
+        
+        const [columns] = await dbPool.query("SHOW COLUMNS FROM users");
+        const colNames = columns.map(c => c.Field);
+        
+        const [userCountRows] = await dbPool.query("SELECT COUNT(*) as count FROM users");
+        
+        res.json({
+            status: "MYSQL_CONNECTED",
+            columns: colNames,
+            totalUsers: userCountRows[0].count
+        });
+    } catch (err) {
+        res.status(500).json({
+            status: "ERROR",
+            message: err.message,
+            stack: err.stack
+        });
+    }
+});
+
 
 // Start server listening
 initDatabase().then(() => {
