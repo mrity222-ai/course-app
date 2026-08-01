@@ -19,16 +19,23 @@ app.use(express.static(__dirname));
 let isMySQL = false;
 let dbPool = null;
 let dbConnectionError = null;
-const JSON_DB_PATH = path.join(__dirname, 'database_live.json');
+const JSON_DB_PATH = (process.platform === 'win32') 
+    ? path.join(__dirname, 'database_live.json')
+    : '/home/u997632379/database_live.json';
 
 // Initialize JSON database with empty structure if not exists
-if (!fs.existsSync(JSON_DB_PATH)) {
-    fs.writeFileSync(JSON_DB_PATH, JSON.stringify({
-        users: {},
-        custom_courses: {},
-        snippets: [],
-        settings: {}
-    }, null, 2));
+try {
+    if (!fs.existsSync(JSON_DB_PATH)) {
+        fs.writeFileSync(JSON_DB_PATH, JSON.stringify({
+            users: {},
+            custom_courses: {},
+            snippets: [],
+            settings: {}
+        }, null, 2));
+        console.log("✓ Initialized JSON database at path:", JSON_DB_PATH);
+    }
+} catch (initErr) {
+    console.error("⚠️ Error initializing JSON DB path:", initErr.message);
 }
 
 // Read JSON database helper
@@ -58,35 +65,39 @@ async function initDatabase() {
     if (dbHost === 'localhost') dbHost = '127.0.0.1'; // Force IPv4 loopback to avoid ::1 access denied on Hostinger
     
     const dbNames = ['u997632379_codewithai', 'u997632379_codewith_ai'];
+    const dbUsers = ['u997632379_codewithai', 'u997632379_codewith_ai'];
     const dbPasswords = ['Codewith_ai1', 'codewith_ai', 'Codewith_ai', 'Codewith_ai123', 'Codewith_ai_db'];
     let lastErr = null;
 
     for (const dbName of dbNames) {
-        for (const dbPass of dbPasswords) {
-            try {
-                console.log(`Attempting connection to database: ${dbName} using password pattern...`);
-                const pool = mysql.createPool({
-                    host: dbHost,
-                    user: 'u997632379_codewithai',
-                    password: dbPass,
-                    database: dbName,
-                    port: 3306,
-                    waitForConnections: true,
-                    connectionLimit: 10,
-                    queueLimit: 0
-                });
+        for (const dbUser of dbUsers) {
+            for (const dbPass of dbPasswords) {
+                try {
+                    console.log(`Attempting connection to database: ${dbName} as user: ${dbUser}...`);
+                    const pool = mysql.createPool({
+                        host: dbHost,
+                        user: dbUser,
+                        password: dbPass,
+                        database: dbName,
+                        port: 3306,
+                        waitForConnections: true,
+                        connectionLimit: 10,
+                        queueLimit: 0
+                    });
 
-                // Test connection
-                const conn = await pool.getConnection();
-                conn.release();
-                
-                dbPool = pool;
-                isMySQL = true;
-                console.log(`🎉 MySQL Connected Successfully to database: ${dbName}!`);
-                break;
-            } catch (err) {
-                lastErr = err;
+                    // Test connection
+                    const conn = await pool.getConnection();
+                    conn.release();
+                    
+                    dbPool = pool;
+                    isMySQL = true;
+                    console.log(`🎉 MySQL Connected Successfully to database: ${dbName} as user: ${dbUser}!`);
+                    break;
+                } catch (err) {
+                    lastErr = err;
+                }
             }
+            if (isMySQL) break;
         }
         if (isMySQL) break;
     }
