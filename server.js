@@ -66,8 +66,11 @@ function writeJSONDb(data) {
 async function initDatabase() {
     try {
         console.log("⚡ Connecting to MySQL database...");
+        let dbHost = process.env.DB_HOST || '127.0.0.1';
+        if (dbHost === 'localhost') dbHost = '127.0.0.1'; // Force IPv4 loopback to avoid ::1 access denied on Hostinger
+        
         dbPool = mysql.createPool({
-            host: process.env.DB_HOST || 'localhost',
+            host: dbHost,
             user: process.env.DB_USER || 'root',
             password: process.env.DB_PASS || '',
             database: process.env.DB_NAME || 'codewith_ai_db',
