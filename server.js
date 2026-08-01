@@ -825,7 +825,13 @@ app.get('/api/debug/db-status', async (req, res) => {
                 connectionError: dbConnectionError,
                 dbFileExists: fs.existsSync(JSON_DB_PATH),
                 envPath: secureEnvPath,
-                envExists: fs.existsSync(secureEnvPath)
+                envExists: fs.existsSync(secureEnvPath),
+                currentConfig: {
+                    host: process.env.DB_HOST || '127.0.0.1',
+                    user: process.env.DB_USER || null,
+                    database: process.env.DB_NAME || null,
+                    passwordMasked: process.env.DB_PASS ? (process.env.DB_PASS.substring(0, 3) + "****") : null
+                }
             });
         }
         
@@ -839,7 +845,13 @@ app.get('/api/debug/db-status', async (req, res) => {
             columns: colNames,
             totalUsers: userCountRows[0].count,
             envPath: secureEnvPath,
-            envExists: fs.existsSync(secureEnvPath)
+            envExists: fs.existsSync(secureEnvPath),
+            currentConfig: {
+                host: process.env.DB_HOST || '127.0.0.1',
+                user: process.env.DB_USER || null,
+                database: process.env.DB_NAME || null,
+                passwordMasked: process.env.DB_PASS ? (process.env.DB_PASS.substring(0, 3) + "****") : null
+            }
         });
     } catch (err) {
         res.status(500).json({
