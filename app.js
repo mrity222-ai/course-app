@@ -11621,6 +11621,10 @@ window.loadStudentSession = async function() {
                 const u = await res.json();
                 window.currentUserObj = u;
                 
+                if (u.role !== 'admin' && typeof initPushNotifications === 'function') {
+                    initPushNotifications(currentUser);
+                }
+                
                 // Set global parameters
                 currentSlideIndex = u.unlockedSlides || 0;
                 completedSlides = {};
@@ -12903,4 +12907,71 @@ if (window.speechSynthesis) {
     }
     // Populate immediately in case voices are pre-loaded
     setTimeout(populateAIVoices, 500);
+}
+
+
+/* --- Web Push Subscription Services --- */
+window.initPushNotifications = async function(username) {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        console.warn('Push notifications not supported on this browser.');
+        return;
+    }
+
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        
+        // Wait until user interacts or automatically trigger permission prompt
+        let permission = Notification.permission;
+        if (permission === 'default') {
+            permission = await Notification.requestPermission();
+        }
+        
+        if (permission !== 'granted') {
+            console.warn('Notification permission denied.');
+            return;
+        }
+
+        // Fetch VAPID public key from server
+        const res = await fetch('/api/push/public-key');
+        if (!res.ok) throw new Error('Failed to fetch VAPID public key');
+        const { publicKey } = await res.json();
+        if (!publicKey) return;
+
+        const applicationServerKey = urlBase64ToUint8Array(publicKey);
+        
+        // Subscribe the user
+        const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: applicationServerKey
+        });
+
+        // Send subscription payload to server
+        await fetch('/api/push/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: username,
+                subscription: subscription
+            })
+        });
+        
+        console.log('✓ Push notification subscription synced with server.');
+    } catch (e) {
+        console.error('❌ Failed to initialize push notifications:', e);
+    }
+};
+
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+        .replace(/\-/g, '+')
+        .replace(/_/g, '/');
+
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
 }

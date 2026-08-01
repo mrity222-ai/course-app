@@ -3,7 +3,18 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
+const webPush = require('web-push');
 require('dotenv').config();
+
+// Configure VAPID details for Push Notifications
+const vapidPublicKey = process.env.VAPID_PUBLIC_KEY || 'BGaSb0xsx3juL0kaBylBEX1Ro8sVBHomK4IdzT4okQA8NlThgCbgv7lIVf5GNSStiDep4dcn-sQfRIhh70s9VzY';
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || 'P6n7TOg1WAIHLl4ry_RwNdAX6cTItYiUE7rx9btCaEQ';
+
+webPush.setVapidDetails(
+    'mailto:admin@codewithai.com',
+    vapidPublicKey,
+    vapidPrivateKey
+);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -116,6 +127,10 @@ async function runSchemaSQL() {
                 await dbPool.query("ALTER TABLE users ADD COLUMN year VARCHAR(20)");
                 console.log("🔧 Added column: year to users table.");
             }
+            if (!colNames.includes('push_subscription')) {
+                await dbPool.query("ALTER TABLE users ADD COLUMN push_subscription TEXT");
+                console.log("🔧 Added column: push_subscription to users table.");
+            }
 
             // Seed default admin user if not exists
             const [adminRows] = await dbPool.query("SELECT * FROM users WHERE username = 'admin'");
@@ -155,11 +170,16 @@ const DB = {
                 tasks: JSON.parse(r.tasks || '[]'),
                 unlockedModules: JSON.parse(r.unlocked_modules || '{}'),
                 unlockRequested: r.unlock_requested === 1,
-                role: r.role
+                role: r.role,
+                pushSubscription: JSON.parse(r.push_subscription || 'null')
             };
         } else {
             const db = readJSONDb();
-            return db.users[username] || null;
+            const u = db.users[username] || null;
+            if (u) {
+                u.pushSubscription = u.pushSubscription || null;
+            }
+            return u;
         }
     },
 
@@ -171,10 +191,11 @@ const DB = {
             const alerts = JSON.stringify(userObj.alerts || []);
             const tasks = JSON.stringify(userObj.tasks || []);
             const unlockedModules = JSON.stringify(userObj.unlockedModules || {});
+            const pushSub = JSON.stringify(userObj.pushSubscription || null);
 
             await dbPool.query(
-                `INSERT INTO users (username, password, email, fullname, mobile, year, unlocked_slides, completed_slides, slide_notes, time_logs, alerts, tasks, unlocked_modules, unlock_requested, role)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `INSERT INTO users (username, password, email, fullname, mobile, year, unlocked_slides, completed_slides, slide_notes, time_logs, alerts, tasks, unlocked_modules, unlock_requested, role, push_subscription)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                  ON DUPLICATE KEY UPDATE 
                  password = VALUES(password),
                  email = VALUES(email),
@@ -189,7 +210,8 @@ const DB = {
                  tasks = VALUES(tasks),
                  unlocked_modules = VALUES(unlocked_modules),
                  unlock_requested = VALUES(unlock_requested),
-                 role = VALUES(role)`,
+                 role = VALUES(role),
+                 push_subscription = VALUES(push_subscription)`,
                 [
                     userObj.username,
                     userObj.password,
@@ -205,7 +227,8 @@ const DB = {
                     tasks,
                     unlockedModules,
                     userObj.unlockRequested ? 1 : 0,
-                    userObj.role || 'student'
+                    userObj.role || 'student',
+                    pushSub
                 ]
             );
         } else {
@@ -225,7 +248,8 @@ const DB = {
                 tasks: userObj.tasks || [],
                 unlockedModules: userObj.unlockedModules || {},
                 unlockRequested: !!userObj.unlockRequested,
-                role: userObj.role || 'student'
+                role: userObj.role || 'student',
+                pushSubscription: userObj.pushSubscription || null
             };
             writeJSONDb(db);
         }
@@ -603,6 +627,25 @@ app.post('/api/progress/save', async (req, res) => {
     }
 });
 
+// Web Push Notification Endpoints
+app.get('/api/push/public-key', (req, res) => {
+    res.json({ publicKey: vapidPublicKey });
+});
+
+app.post('/api/push/subscribe', async (req, res) => {
+    try {
+        const { username, subscription } = req.body;
+        const userObj = await DB.getUser(username);
+        if (!userObj) return res.status(404).json({ error: "User not found!" });
+
+        userObj.pushSubscription = subscription;
+        await DB.saveUser(userObj);
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Notes Sync Endpoints
 app.get('/api/notes/get', async (req, res) => {
     try {
@@ -680,6 +723,26 @@ app.post('/api/admin/alert', async (req, res) => {
         userObj.alerts.push(alertText);
 
         await DB.saveUser(userObj);
+
+        // Send Push Notification if user has subscribed
+        if (userObj.pushSubscription) {
+            try {
+                const payload = JSON.stringify({
+                    title: '📢 Admin Message',
+                    body: alertText,
+                    icon: '/icon.jpg',
+                    badge: '/icon.jpg',
+                    data: {
+                        url: '/'
+                    }
+                });
+                await webPush.sendNotification(userObj.pushSubscription, payload);
+                console.log(`✓ Web Push alert sent to ${username}`);
+            } catch (err) {
+                console.error(`❌ Failed to send push alert to ${username}:`, err.message);
+            }
+        }
+
         res.json({ success: true });
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -696,6 +759,26 @@ app.post('/api/admin/task', async (req, res) => {
         userObj.tasks.push(taskText);
 
         await DB.saveUser(userObj);
+
+        // Send Push Notification if user has subscribed
+        if (userObj.pushSubscription) {
+            try {
+                const payload = JSON.stringify({
+                    title: '📝 New Task Assigned',
+                    body: `Naya task: "${taskText}"`,
+                    icon: '/icon.jpg',
+                    badge: '/icon.jpg',
+                    data: {
+                        url: '/'
+                    }
+                });
+                await webPush.sendNotification(userObj.pushSubscription, payload);
+                console.log(`✓ Web Push task notification sent to ${username}`);
+            } catch (err) {
+                console.error(`❌ Failed to send push task notification to ${username}:`, err.message);
+            }
+        }
+
         res.json({ success: true });
     } catch (e) {
         res.status(500).json({ error: e.message });

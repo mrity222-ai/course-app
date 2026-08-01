@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS users (
     unlocked_modules TEXT, -- JSON Object mapping module names to unlock flags
     unlock_requested TINYINT DEFAULT 0,
     role VARCHAR(10) DEFAULT 'student',
+    push_subscription TEXT, -- JSON Object containing client push subscriber endpoints and keys
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
