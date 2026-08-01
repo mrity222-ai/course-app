@@ -11621,7 +11621,17 @@ window.loadStudentSession = async function() {
                 const u = await res.json();
                 window.currentUserObj = u;
                 
-                if (u.role !== 'admin' && typeof initPushNotifications === 'function') {
+                // Control display of Push Notifications alert banner
+                const banner = document.getElementById('push-notif-banner');
+                if (banner) {
+                    if (u.role !== 'admin' && 'Notification' in window && Notification.permission === 'default') {
+                        banner.style.display = 'flex';
+                    } else {
+                        banner.style.display = 'none';
+                    }
+                }
+                
+                if (u.role !== 'admin' && 'Notification' in window && Notification.permission === 'granted' && typeof initPushNotifications === 'function') {
                     initPushNotifications(currentUser);
                 }
                 
@@ -12951,18 +12961,15 @@ window.initPushNotifications = async function(username) {
     }
 
     try {
-        const registration = await navigator.serviceWorker.ready;
-        
-        // Wait until user interacts or automatically trigger permission prompt
-        let permission = Notification.permission;
-        if (permission === 'default') {
-            permission = await Notification.requestPermission();
+        // Register or retrieve service worker registration
+        let registration = await navigator.serviceWorker.getRegistration();
+        if (!registration) {
+            registration = await navigator.serviceWorker.register('sw.js');
+            console.log('✓ Service Worker registered inside push init.');
         }
         
-        if (permission !== 'granted') {
-            console.warn('Notification permission denied.');
-            return;
-        }
+        // Wait until service worker is active
+        await navigator.serviceWorker.ready;
 
         // Fetch VAPID public key from server
         const res = await fetch('/api/push/public-key');
@@ -12991,6 +12998,30 @@ window.initPushNotifications = async function(username) {
         console.log('✓ Push notification subscription synced with server.');
     } catch (e) {
         console.error('❌ Failed to initialize push notifications:', e);
+    }
+};
+
+window.requestPushPermissionAndSubscribe = async function() {
+    const currentUser = localStorage.getItem('codewith_ai_currentUser');
+    if (!currentUser) return;
+    
+    if (!('Notification' in window)) {
+        alert("❌ Aapka browser notifications support nahi karta.");
+        return;
+    }
+    
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            await initPushNotifications(currentUser);
+            const banner = document.getElementById('push-notif-banner');
+            if (banner) banner.style.display = 'none';
+            alert("✓ Alerts successfully enabled on your device! Ab aapko bina website open kiye notifications milenge.");
+        } else {
+            alert("❌ Permission denied. Alerts receive karne ke liye browser settings me notification access enable karein.");
+        }
+    } catch (err) {
+        console.error("Error requesting notification permission:", err);
     }
 };
 
