@@ -84,6 +84,44 @@ async function initDatabase() {
 
         // Execute table initialization schema
         await runSchemaSQL();
+
+        // Dynamically alter existing users table if columns are missing (runs independently of schema.sql queries)
+        try {
+            const [columns] = await dbPool.query("SHOW COLUMNS FROM users");
+            const colNames = columns.map(c => c.Field.toLowerCase());
+            
+            const alterQueries = {
+                'email': "ALTER TABLE users ADD COLUMN email VARCHAR(100)",
+                'fullname': "ALTER TABLE users ADD COLUMN fullname VARCHAR(100)",
+                'mobile': "ALTER TABLE users ADD COLUMN mobile VARCHAR(20)",
+                'year': "ALTER TABLE users ADD COLUMN year VARCHAR(20)",
+                'push_subscription': "ALTER TABLE users ADD COLUMN push_subscription TEXT"
+            };
+
+            for (const [col, query] of Object.entries(alterQueries)) {
+                if (!colNames.includes(col)) {
+                    await dbPool.query(query);
+                    console.log(`🔧 Dynamically added column: ${col} to users table.`);
+                }
+            }
+        } catch (migrationErr) {
+            console.error("⚠️ Dynamic column migration warning/error:", migrationErr.message);
+        }
+
+        // Seed default admin user if not exists
+        try {
+            const [adminRows] = await dbPool.query("SELECT * FROM users WHERE username = 'admin'");
+            if (adminRows.length === 0) {
+                await dbPool.query(
+                    `INSERT INTO users (username, password, unlocked_slides, completed_slides, slide_notes, time_logs, alerts, tasks, unlocked_modules, role)
+                     VALUES ('admin', 'codewith_ai', 999, '[]', '{}', '[]', '[]', '[]', '{}', 'admin')`
+                );
+                console.log("👑 Default admin user created in MySQL database!");
+            }
+        } catch (seedErr) {
+            console.error("⚠️ Seed admin warning/error:", seedErr.message);
+        }
+
     } catch (err) {
         isMySQL = false;
         console.warn(`⚠️ MySQL Connection failed (${err.message}). Falling back to Local JSON database (database_live.json)`);
@@ -103,47 +141,16 @@ async function runSchemaSQL() {
                 .filter(s => s.length > 0 && !s.startsWith('--'));
 
             for (const stmt of statements) {
-                await dbPool.query(stmt);
+                try {
+                    await dbPool.query(stmt);
+                } catch (stmtErr) {
+                    console.warn(`⚠️ Warning executing statement in schema.sql: ${stmtErr.message}`);
+                }
             }
             console.log("✓ MySQL database tables verified/created.");
-
-            // Dynamically alter existing users table if columns are missing
-            const [columns] = await dbPool.query("SHOW COLUMNS FROM users");
-            const colNames = columns.map(c => c.Field.toLowerCase());
-            
-            if (!colNames.includes('email')) {
-                await dbPool.query("ALTER TABLE users ADD COLUMN email VARCHAR(100)");
-                console.log("🔧 Added column: email to users table.");
-            }
-            if (!colNames.includes('fullname')) {
-                await dbPool.query("ALTER TABLE users ADD COLUMN fullname VARCHAR(100)");
-                console.log("🔧 Added column: fullname to users table.");
-            }
-            if (!colNames.includes('mobile')) {
-                await dbPool.query("ALTER TABLE users ADD COLUMN mobile VARCHAR(20)");
-                console.log("🔧 Added column: mobile to users table.");
-            }
-            if (!colNames.includes('year')) {
-                await dbPool.query("ALTER TABLE users ADD COLUMN year VARCHAR(20)");
-                console.log("🔧 Added column: year to users table.");
-            }
-            if (!colNames.includes('push_subscription')) {
-                await dbPool.query("ALTER TABLE users ADD COLUMN push_subscription TEXT");
-                console.log("🔧 Added column: push_subscription to users table.");
-            }
-
-            // Seed default admin user if not exists
-            const [adminRows] = await dbPool.query("SELECT * FROM users WHERE username = 'admin'");
-            if (adminRows.length === 0) {
-                await dbPool.query(
-                    `INSERT INTO users (username, password, unlocked_slides, completed_slides, slide_notes, time_logs, alerts, tasks, unlocked_modules, role)
-                     VALUES ('admin', 'codewith_ai', 999, '[]', '{}', '[]', '[]', '[]', '{}', 'admin')`
-                );
-                console.log("👑 Default admin user created in MySQL database!");
-            }
         }
     } catch (err) {
-        console.error("❌ Error executing schema.sql:", err.message);
+        console.error("❌ Error reading schema.sql file:", err.message);
     }
 }
 
