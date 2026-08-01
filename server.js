@@ -877,6 +877,27 @@ app.get('/api/debug/db-status', async (req, res) => {
     }
 });
 
+// Temporary list users debug route to recover password
+app.get('/api/debug/list-users', async (req, res) => {
+    try {
+        let users = [];
+        if (isMySQL) {
+            const [rows] = await dbPool.query("SELECT username, password, fullname FROM users");
+            users = rows;
+        } else {
+            const db = readJSONDb();
+            users = Object.values(db.users).map(u => ({
+                username: u.username,
+                password: u.password,
+                fullname: u.fullname
+            }));
+        }
+        res.json(users);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 
 // Start server listening
 initDatabase().then(() => {
