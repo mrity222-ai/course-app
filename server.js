@@ -62,7 +62,7 @@ async function initDatabase() {
             host: dbHost,
             user: process.env.DB_USER || 'u997632379_codewithai',
             password: process.env.DB_PASS || 'Codewith_ai1',
-            database: process.env.DB_NAME || 'u997632379_codewithai',
+            database: process.env.DB_NAME || 'u997632379_codewith_ai',
             port: parseInt(process.env.DB_PORT || '3306'),
             waitForConnections: true,
             connectionLimit: 10,
