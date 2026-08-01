@@ -1,4 +1,4 @@
-const CACHE_NAME = 'codewith_ai_cache_v2';
+const CACHE_NAME = 'codewith_ai_cache_v3';
 const ASSETS = [
     './',
     './index.html',
@@ -31,9 +31,27 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
+    // Bypass cache for API calls completely
+    if (e.request.url.includes('/api/')) {
+        e.respondWith(fetch(e.request));
+        return;
+    }
+    
     e.respondWith(
-        caches.match(e.request).then((cachedResponse) => {
-            return cachedResponse || fetch(e.request);
-        })
+        fetch(e.request)
+            .then((response) => {
+                // If successful connection, update cache
+                if (response && response.status === 200) {
+                    const cacheCopy = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(e.request, cacheCopy);
+                    });
+                }
+                return response;
+            })
+            .catch(() => {
+                // Fall back to cache on network failure
+                return caches.match(e.request);
+            })
     );
 });
