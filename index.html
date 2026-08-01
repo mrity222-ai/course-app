@@ -923,17 +923,6 @@
                 </div>
             </div>
 
-            <!-- Push Notification Subscription Banner -->
-            <div id="push-notif-banner" class="glass" style="display: none; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; border-radius: 8px; background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.25); margin-bottom: 1rem; font-family: 'Plus Jakarta Sans', sans-serif; gap: 1rem; flex-wrap: wrap;">
-                <div style="display: flex; align-items: center; gap: 8px; color: #cbd5e1; font-size: 0.85rem; text-align: left;">
-                    <span style="font-size: 1.2rem;">🔔</span>
-                    <span>Admin ke homework tasks aur alerts direct phone screen par paayein (bina website open kiye).</span>
-                </div>
-                <button onclick="requestPushPermissionAndSubscribe()" class="btn btn-primary" style="padding: 0.35rem 0.85rem; font-size: 0.75rem; background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%); border: none; font-weight: bold; cursor: pointer; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">
-                    Enable Alerts 🟢
-                </button>
-            </div>
-
             <!-- Slide Viewer Card -->
             <div class="slide-card glass" id="slide-card">
                 <div class="progress-bar-container">
@@ -1208,12 +1197,10 @@
                         <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                             <div>
                                 <label style="font-size: 0.8rem; color: #cbd5e1; display: block; margin-bottom: 0.25rem; font-weight: bold;">Select Student Target</label>
-                                <div style="border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); border-radius: 6px; padding: 0.5rem; max-height: 120px; overflow-y: auto; box-sizing: border-box; display: flex; flex-direction: column; gap: 0.25rem;" id="admin-students-checkbox-list">
-                                    <!-- Dynamic student checkboxes -->
-                                </div>
-                                <label style="font-size: 0.75rem; color: #38bdf8; display: inline-flex; align-items: center; gap: 4px; margin-top: 0.35rem; cursor: pointer; user-select: none;">
-                                    <input type="checkbox" id="admin-select-all-students" onclick="toggleSelectAllStudents(this)" style="cursor: pointer; transform: scale(1.05);"> Select All Students
-                                </label>
+                                <select id="admin-target-student" style="width: 100%; padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; box-sizing: border-box; outline: none;">
+                                    <option value="">-- Choose Student --</option>
+                                    <!-- Dynamic options -->
+                                </select>
                             </div>
                             <div>
                                 <label style="font-size: 0.8rem; color: #cbd5e1; display: block; margin-bottom: 0.25rem; font-weight: bold;">Send Warning / Real-time Message</label>

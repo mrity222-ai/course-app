@@ -11621,45 +11621,6 @@ window.loadStudentSession = async function() {
                 const u = await res.json();
                 window.currentUserObj = u;
                 
-                // Control display of Push Notifications alert banner and attempt auto-prompt
-                const banner = document.getElementById('push-notif-banner');
-                if (banner) {
-                    if (u.role !== 'admin' && 'Notification' in window) {
-                        const bannerText = banner.querySelector('div span:last-child');
-                        const bannerBtn = banner.querySelector('button');
-
-                        if (Notification.permission === 'default') {
-                            banner.style.display = 'flex';
-                            banner.style.background = 'rgba(56,189,248,0.08)';
-                            banner.style.border = '1px solid rgba(56,189,248,0.25)';
-                            if (bannerText) bannerText.innerHTML = 'Admin ke homework tasks aur alerts direct phone screen par paayein (bina website open kiye).';
-                            if (bannerBtn) bannerBtn.style.display = 'inline-block';
-                            
-                            // Auto-prompt permission on session load (if browser allows)
-                            Notification.requestPermission().then(permission => {
-                                if (permission === 'granted') {
-                                    initPushNotifications(currentUser);
-                                    banner.style.display = 'none';
-                                }
-                            }).catch(err => console.log('Auto-permission prompt deferred:', err));
-                        } else if (Notification.permission === 'denied') {
-                            banner.style.display = 'flex';
-                            banner.style.background = 'rgba(239, 68, 68, 0.08)';
-                            banner.style.border = '1px solid rgba(239, 68, 68, 0.25)';
-                            if (bannerText) bannerText.innerHTML = '⚠️ Aapne notifications block kiye hain. Phone screen par homework alerts paane ke liye browser settings me notification block remove karke Allow karein.';
-                            if (bannerBtn) bannerBtn.style.display = 'none';
-                        } else {
-                            banner.style.display = 'none';
-                        }
-                    } else {
-                        banner.style.display = 'none';
-                    }
-                }
-                
-                if (u.role !== 'admin' && 'Notification' in window && Notification.permission === 'granted' && typeof initPushNotifications === 'function') {
-                    initPushNotifications(currentUser);
-                }
-                
                 // Set global parameters
                 currentSlideIndex = u.unlockedSlides || 0;
                 completedSlides = {};
@@ -11913,8 +11874,8 @@ window.switchAdminTab = function(tab) {
 
 window.renderAdminStudentsList = async function() {
     const container = document.getElementById('admin-students-list-container');
-    const checkboxList = document.getElementById('admin-students-checkbox-list');
-    if (!container) return;
+    const selectTarget = document.getElementById('admin-target-student');
+    if (!container || !selectTarget) return;
     
     let students = [];
     try {
@@ -11926,25 +11887,8 @@ window.renderAdminStudentsList = async function() {
         console.error("Error fetching students list:", e);
     }
     
-    // Populate Target Checkboxes
-    if (checkboxList) {
-        const selectAllCheckbox = document.getElementById('admin-select-all-students');
-        if (selectAllCheckbox) selectAllCheckbox.checked = false;
-        
-        if (students.length === 0) {
-            checkboxList.innerHTML = '<div style="color:#94a3b8; font-size:0.75rem; font-style:italic; padding:0.25rem;">No students found</div>';
-        } else {
-            checkboxList.innerHTML = students.map(u => {
-                const labelName = u.fullname ? `${u.fullname} (${u.username})` : u.username;
-                return `
-                    <label style="display: flex; align-items: center; gap: 0.5rem; color: white; font-size: 0.8rem; cursor: pointer; user-select: none; margin: 0;">
-                        <input type="checkbox" class="admin-student-checkbox" value="${u.username}" style="cursor: pointer; width: 14px; height: 14px; margin: 0;">
-                        <span style="line-height: 1.2;">${labelName}</span>
-                    </label>
-                `;
-            }).join('');
-        }
-    }
+    // Reset Target Dropdown options
+    selectTarget.innerHTML = '<option value="">-- Choose Student --</option>';
     
     if (students.length === 0) {
         container.innerHTML = `
@@ -11962,7 +11906,11 @@ window.renderAdminStudentsList = async function() {
         const pct = total > 0 ? Math.round((completedCount / total) * 100) : 0;
         const notesCount = u.slideNotes ? Object.keys(u.slideNotes).length : 0;
         
-        // Target option mapping removed in favor of checkboxes
+        // Populate target dropdown option
+        const opt = document.createElement('option');
+        opt.value = username;
+        opt.innerText = username;
+        selectTarget.appendChild(opt);
         
         // Setup modules access control panel list
         const studentModules = getStudentCourseModules();
@@ -12114,23 +12062,14 @@ window.addEventListener('beforeunload', () => {
     recordSlideTimeSpent();
 });
 
-window.toggleSelectAllStudents = function(masterCheckbox) {
-    const checkboxes = document.querySelectorAll('.admin-student-checkbox');
-    checkboxes.forEach(cb => {
-        cb.checked = masterCheckbox.checked;
-    });
-};
-
 window.sendAdminNotification = async function() {
-    const checkedBoxes = document.querySelectorAll('.admin-student-checkbox:checked');
-    const students = Array.from(checkedBoxes).map(cb => cb.value);
-    
+    const student = document.getElementById('admin-target-student').value;
     const alertText = document.getElementById('admin-alert-text').value.trim();
     const taskText = document.getElementById('admin-task-text').value.trim();
     const statusDiv = document.getElementById('admin-notif-status');
     
-    if (students.length === 0) {
-        alert("Pehle target student ko select karein (kam se kam ek select karein)!");
+    if (!student) {
+        alert("Pehle target student ko select karein!");
         return;
     }
     
@@ -12140,48 +12079,37 @@ window.sendAdminNotification = async function() {
     }
     
     try {
-        const promises = [];
-        students.forEach(student => {
-            if (alertText) {
-                promises.push(
-                    fetch('/api/admin/alert', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username: student, alertText: alertText })
-                    })
-                );
-            }
-            if (taskText) {
-                promises.push(
-                    fetch('/api/admin/task', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username: student, taskText: taskText })
-                    })
-                );
-            }
-        });
+        if (alertText) {
+            await fetch('/api/admin/alert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: student, alertText: alertText })
+            });
+        }
         
-        await Promise.all(promises);
+        if (taskText) {
+            await fetch('/api/admin/task', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: student, taskText: taskText })
+            });
+        }
         
-        // Clear inputs and checkboxes
+        // Clear inputs
         document.getElementById('admin-alert-text').value = '';
         document.getElementById('admin-task-text').value = '';
-        checkedBoxes.forEach(cb => {
-            cb.checked = false;
-        });
-        const selectAllCheckbox = document.getElementById('admin-select-all-students');
-        if (selectAllCheckbox) selectAllCheckbox.checked = false;
         
         if (statusDiv) {
-            statusDiv.innerText = `✓ Successfully sent to ${students.length} students!`;
+            statusDiv.innerText = `✓ Successfully sent to ${student}!`;
             statusDiv.style.display = 'block';
             setTimeout(() => {
                 statusDiv.style.display = 'none';
-            }, 3000);
+            }, 2500);
         }
         
-        await renderAdminStudentsList();
+        if (localStorage.getItem('codewith_ai_currentUser') === student) {
+            await loadStudentSession();
+        }
     } catch (e) {
         console.error("Error sending admin notifications:", e);
     }
@@ -12975,92 +12903,4 @@ if (window.speechSynthesis) {
     }
     // Populate immediately in case voices are pre-loaded
     setTimeout(populateAIVoices, 500);
-}
-
-
-/* --- Web Push Subscription Services --- */
-window.initPushNotifications = async function(username) {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        console.warn('Push notifications not supported on this browser.');
-        return;
-    }
-
-    try {
-        // Register or retrieve service worker registration
-        let registration = await navigator.serviceWorker.getRegistration();
-        if (!registration) {
-            registration = await navigator.serviceWorker.register('sw.js');
-            console.log('✓ Service Worker registered inside push init.');
-        }
-        
-        // Wait until service worker is active
-        await navigator.serviceWorker.ready;
-
-        // Fetch VAPID public key from server
-        const res = await fetch('/api/push/public-key');
-        if (!res.ok) throw new Error('Failed to fetch VAPID public key');
-        const { publicKey } = await res.json();
-        if (!publicKey) return;
-
-        const applicationServerKey = urlBase64ToUint8Array(publicKey);
-        
-        // Subscribe the user
-        const subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: applicationServerKey
-        });
-
-        // Send subscription payload to server
-        await fetch('/api/push/subscribe', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                username: username,
-                subscription: subscription
-            })
-        });
-        
-        console.log('✓ Push notification subscription synced with server.');
-    } catch (e) {
-        console.error('❌ Failed to initialize push notifications:', e);
-    }
-};
-
-window.requestPushPermissionAndSubscribe = async function() {
-    const currentUser = localStorage.getItem('codewith_ai_currentUser');
-    if (!currentUser) return;
-    
-    if (!('Notification' in window)) {
-        alert("❌ Aapka browser notifications support nahi karta.");
-        return;
-    }
-    
-    try {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-            await initPushNotifications(currentUser);
-            const banner = document.getElementById('push-notif-banner');
-            if (banner) banner.style.display = 'none';
-            alert("✓ Alerts successfully enabled on your device! Ab aapko bina website open kiye notifications milenge.");
-        } else {
-            alert("❌ Permission denied. Alerts receive karne ke liye browser settings me notification access enable karein.");
-        }
-    } catch (err) {
-        console.error("Error requesting notification permission:", err);
-    }
-};
-
-function urlBase64ToUint8Array(base64String) {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-        .replace(/\-/g, '+')
-        .replace(/_/g, '/');
-
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-
-    for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
 }

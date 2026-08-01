@@ -15,8 +15,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "mysql2": "^3.9.7",
-    "web-push": "^3.6.7"
+    "mysql2": "^3.9.7"
   },
   "devDependencies": {
     "@electron/packager": "^20.0.4",
