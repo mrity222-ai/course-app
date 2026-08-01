@@ -11878,8 +11878,8 @@ window.switchAdminTab = function(tab) {
 
 window.renderAdminStudentsList = async function() {
     const container = document.getElementById('admin-students-list-container');
-    const selectTarget = document.getElementById('admin-target-student');
-    if (!container || !selectTarget) return;
+    const checkboxList = document.getElementById('admin-students-checkbox-list');
+    if (!container) return;
     
     let students = [];
     try {
@@ -11891,8 +11891,25 @@ window.renderAdminStudentsList = async function() {
         console.error("Error fetching students list:", e);
     }
     
-    // Reset Target Dropdown options
-    selectTarget.innerHTML = '<option value="">-- Choose Student --</option>';
+    // Populate Target Checkboxes
+    if (checkboxList) {
+        const selectAllCheckbox = document.getElementById('admin-select-all-students');
+        if (selectAllCheckbox) selectAllCheckbox.checked = false;
+        
+        if (students.length === 0) {
+            checkboxList.innerHTML = '<div style="color:#94a3b8; font-size:0.75rem; font-style:italic; padding:0.25rem;">No students found</div>';
+        } else {
+            checkboxList.innerHTML = students.map(u => {
+                const labelName = u.fullname ? `${u.fullname} (${u.username})` : u.username;
+                return `
+                    <label style="display: flex; align-items: center; gap: 0.5rem; color: white; font-size: 0.8rem; cursor: pointer; user-select: none; margin: 0;">
+                        <input type="checkbox" class="admin-student-checkbox" value="${u.username}" style="cursor: pointer; width: 14px; height: 14px; margin: 0;">
+                        <span style="line-height: 1.2;">${labelName}</span>
+                    </label>
+                `;
+            }).join('');
+        }
+    }
     
     if (students.length === 0) {
         container.innerHTML = `
@@ -11910,11 +11927,7 @@ window.renderAdminStudentsList = async function() {
         const pct = total > 0 ? Math.round((completedCount / total) * 100) : 0;
         const notesCount = u.slideNotes ? Object.keys(u.slideNotes).length : 0;
         
-        // Populate target dropdown option
-        const opt = document.createElement('option');
-        opt.value = username;
-        opt.innerText = username;
-        selectTarget.appendChild(opt);
+        // Target option mapping removed in favor of checkboxes
         
         // Setup modules access control panel list
         const studentModules = getStudentCourseModules();
@@ -12066,14 +12079,23 @@ window.addEventListener('beforeunload', () => {
     recordSlideTimeSpent();
 });
 
+window.toggleSelectAllStudents = function(masterCheckbox) {
+    const checkboxes = document.querySelectorAll('.admin-student-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = masterCheckbox.checked;
+    });
+};
+
 window.sendAdminNotification = async function() {
-    const student = document.getElementById('admin-target-student').value;
+    const checkedBoxes = document.querySelectorAll('.admin-student-checkbox:checked');
+    const students = Array.from(checkedBoxes).map(cb => cb.value);
+    
     const alertText = document.getElementById('admin-alert-text').value.trim();
     const taskText = document.getElementById('admin-task-text').value.trim();
     const statusDiv = document.getElementById('admin-notif-status');
     
-    if (!student) {
-        alert("Pehle target student ko select karein!");
+    if (students.length === 0) {
+        alert("Pehle target student ko select karein (kam se kam ek select karein)!");
         return;
     }
     
@@ -12083,37 +12105,48 @@ window.sendAdminNotification = async function() {
     }
     
     try {
-        if (alertText) {
-            await fetch('/api/admin/alert', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: student, alertText: alertText })
-            });
-        }
+        const promises = [];
+        students.forEach(student => {
+            if (alertText) {
+                promises.push(
+                    fetch('/api/admin/alert', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: student, alertText: alertText })
+                    })
+                );
+            }
+            if (taskText) {
+                promises.push(
+                    fetch('/api/admin/task', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: student, taskText: taskText })
+                    })
+                );
+            }
+        });
         
-        if (taskText) {
-            await fetch('/api/admin/task', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: student, taskText: taskText })
-            });
-        }
+        await Promise.all(promises);
         
-        // Clear inputs
+        // Clear inputs and checkboxes
         document.getElementById('admin-alert-text').value = '';
         document.getElementById('admin-task-text').value = '';
+        checkedBoxes.forEach(cb => {
+            cb.checked = false;
+        });
+        const selectAllCheckbox = document.getElementById('admin-select-all-students');
+        if (selectAllCheckbox) selectAllCheckbox.checked = false;
         
         if (statusDiv) {
-            statusDiv.innerText = `✓ Successfully sent to ${student}!`;
+            statusDiv.innerText = `✓ Successfully sent to ${students.length} students!`;
             statusDiv.style.display = 'block';
             setTimeout(() => {
                 statusDiv.style.display = 'none';
-            }, 2500);
+            }, 3000);
         }
         
-        if (localStorage.getItem('codewith_ai_currentUser') === student) {
-            await loadStudentSession();
-        }
+        await renderAdminStudentsList();
     } catch (e) {
         console.error("Error sending admin notifications:", e);
     }
