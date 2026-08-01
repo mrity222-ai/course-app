@@ -11621,11 +11621,36 @@ window.loadStudentSession = async function() {
                 const u = await res.json();
                 window.currentUserObj = u;
                 
-                // Control display of Push Notifications alert banner
+                // Control display of Push Notifications alert banner and attempt auto-prompt
                 const banner = document.getElementById('push-notif-banner');
                 if (banner) {
-                    if (u.role !== 'admin' && 'Notification' in window && Notification.permission === 'default') {
-                        banner.style.display = 'flex';
+                    if (u.role !== 'admin' && 'Notification' in window) {
+                        const bannerText = banner.querySelector('div span:last-child');
+                        const bannerBtn = banner.querySelector('button');
+
+                        if (Notification.permission === 'default') {
+                            banner.style.display = 'flex';
+                            banner.style.background = 'rgba(56,189,248,0.08)';
+                            banner.style.border = '1px solid rgba(56,189,248,0.25)';
+                            if (bannerText) bannerText.innerHTML = 'Admin ke homework tasks aur alerts direct phone screen par paayein (bina website open kiye).';
+                            if (bannerBtn) bannerBtn.style.display = 'inline-block';
+                            
+                            // Auto-prompt permission on session load (if browser allows)
+                            Notification.requestPermission().then(permission => {
+                                if (permission === 'granted') {
+                                    initPushNotifications(currentUser);
+                                    banner.style.display = 'none';
+                                }
+                            }).catch(err => console.log('Auto-permission prompt deferred:', err));
+                        } else if (Notification.permission === 'denied') {
+                            banner.style.display = 'flex';
+                            banner.style.background = 'rgba(239, 68, 68, 0.08)';
+                            banner.style.border = '1px solid rgba(239, 68, 68, 0.25)';
+                            if (bannerText) bannerText.innerHTML = '⚠️ Aapne notifications block kiye hain. Phone screen par homework alerts paane ke liye browser settings me notification block remove karke Allow karein.';
+                            if (bannerBtn) bannerBtn.style.display = 'none';
+                        } else {
+                            banner.style.display = 'none';
+                        }
                     } else {
                         banner.style.display = 'none';
                     }
