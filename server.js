@@ -53,28 +53,42 @@ function writeJSONDb(data) {
 
 // DB Initialization Routine
 async function initDatabase() {
-    try {
-        console.log("⚡ Connecting to MySQL database...");
-        let dbHost = process.env.DB_HOST || '127.0.0.1';
-        if (dbHost === 'localhost') dbHost = '127.0.0.1'; // Force IPv4 loopback to avoid ::1 access denied on Hostinger
-        
-        dbPool = mysql.createPool({
-            host: dbHost,
-            user: process.env.DB_USER || 'u997632379_codewithai',
-            password: process.env.DB_PASS || 'Codewith_ai1',
-            database: process.env.DB_NAME || 'u997632379_codewith_ai',
-            port: parseInt(process.env.DB_PORT || '3306'),
-            waitForConnections: true,
-            connectionLimit: 10,
-            queueLimit: 0
-        });
+    console.log("⚡ Connecting to MySQL database...");
+    let dbHost = process.env.DB_HOST || '127.0.0.1';
+    if (dbHost === 'localhost') dbHost = '127.0.0.1'; // Force IPv4 loopback to avoid ::1 access denied on Hostinger
+    
+    const dbNames = ['u997632379_codewithai', 'u997632379_codewith_ai'];
+    let lastErr = null;
 
-        // Test connection
-        const conn = await dbPool.getConnection();
-        conn.release();
-        isMySQL = true;
-        console.log("🎉 MySQL Connected Successfully!");
+    for (const dbName of dbNames) {
+        try {
+            console.log(`Attempting connection to database: ${dbName}...`);
+            const pool = mysql.createPool({
+                host: dbHost,
+                user: 'u997632379_codewithai',
+                password: 'Codewith_ai1',
+                database: dbName,
+                port: 3306,
+                waitForConnections: true,
+                connectionLimit: 10,
+                queueLimit: 0
+            });
 
+            // Test connection
+            const conn = await pool.getConnection();
+            conn.release();
+            
+            dbPool = pool;
+            isMySQL = true;
+            console.log(`🎉 MySQL Connected Successfully to database: ${dbName}!`);
+            break;
+        } catch (err) {
+            lastErr = err;
+            console.warn(`⚠️ Connection to database ${dbName} failed: ${err.message}`);
+        }
+    }
+
+    if (isMySQL) {
         // Execute table initialization schema
         await runSchemaSQL();
 
@@ -114,10 +128,10 @@ async function initDatabase() {
             console.error("⚠️ Seed admin warning/error:", seedErr.message);
         }
 
-    } catch (err) {
+    } else {
         isMySQL = false;
-        dbConnectionError = err.message + "\n" + err.stack;
-        console.warn(`⚠️ MySQL Connection failed (${err.message}). Falling back to Local JSON database (database_live.json)`);
+        dbConnectionError = lastErr.message + "\n" + lastErr.stack;
+        console.warn(`⚠️ MySQL Connection failed (${lastErr.message}). Falling back to Local JSON database (database_live.json)`);
     }
 }
 
