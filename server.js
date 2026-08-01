@@ -3,7 +3,10 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
-require('dotenv').config();
+const secureEnvPath = (process.platform === 'win32') 
+    ? path.join(__dirname, '.env') 
+    : '/home/u997632379/.env';
+require('dotenv').config({ path: secureEnvPath });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -64,42 +67,39 @@ async function initDatabase() {
     let dbHost = process.env.DB_HOST || '127.0.0.1';
     if (dbHost === 'localhost') dbHost = '127.0.0.1'; // Force IPv4 loopback to avoid ::1 access denied on Hostinger
     
-    const dbNames = ['u997632379_codewithai', 'u997632379_codewith_ai'];
-    const dbUsers = ['u997632379_codewithai', 'u997632379_codewith_ai'];
-    const dbPasswords = ['Codewith_ai1', 'codewith_ai', 'Codewith_ai', 'Codewith_ai123', 'Codewith_ai_db'];
-    let lastErr = null;
+    const dbUser = process.env.DB_USER;
+    const dbPass = process.env.DB_PASS;
+    const dbName = process.env.DB_NAME;
 
-    for (const dbName of dbNames) {
-        for (const dbUser of dbUsers) {
-            for (const dbPass of dbPasswords) {
-                try {
-                    console.log(`Attempting connection to database: ${dbName} as user: ${dbUser}...`);
-                    const pool = mysql.createPool({
-                        host: dbHost,
-                        user: dbUser,
-                        password: dbPass,
-                        database: dbName,
-                        port: 3306,
-                        waitForConnections: true,
-                        connectionLimit: 10,
-                        queueLimit: 0
-                    });
+    if (!dbUser || !dbPass || !dbName) {
+        isMySQL = false;
+        dbConnectionError = "Missing database environment configurations. Database needs to be initialized via secure setup.";
+        console.warn("⚠️ MySQL Connection bypassed: Missing environment variables.");
+    } else {
+        try {
+            console.log(`Connecting to database: ${dbName} as user: ${dbUser}...`);
+            dbPool = mysql.createPool({
+                host: dbHost,
+                user: dbUser,
+                password: dbPass,
+                database: dbName,
+                port: 3306,
+                waitForConnections: true,
+                connectionLimit: 10,
+                queueLimit: 0
+            });
 
-                    // Test connection
-                    const conn = await pool.getConnection();
-                    conn.release();
-                    
-                    dbPool = pool;
-                    isMySQL = true;
-                    console.log(`🎉 MySQL Connected Successfully to database: ${dbName} as user: ${dbUser}!`);
-                    break;
-                } catch (err) {
-                    lastErr = err;
-                }
-            }
-            if (isMySQL) break;
+            // Test connection
+            const conn = await dbPool.getConnection();
+            conn.release();
+            
+            isMySQL = true;
+            console.log(`🎉 MySQL Connected Successfully to database: ${dbName}!`);
+        } catch (err) {
+            isMySQL = false;
+            dbConnectionError = err.message + "\n" + err.stack;
+            console.warn(`⚠️ MySQL Connection failed (${err.message}). Falling back to Local JSON database (database_live.json)`);
         }
-        if (isMySQL) break;
     }
 
     if (isMySQL) {
@@ -144,8 +144,7 @@ async function initDatabase() {
 
     } else {
         isMySQL = false;
-        dbConnectionError = lastErr.message + "\n" + lastErr.stack;
-        console.warn(`⚠️ MySQL Connection failed (${lastErr.message}). Falling back to Local JSON database (database_live.json)`);
+        console.warn(`⚠️ Running on local JSON fallback database due to missing or failed connection.`);
     }
 }
 
@@ -795,6 +794,27 @@ app.post('/api/config/sarvam_key', async (req, res) => {
     }
 });
 
+// Secure environment variable setup route (Generic, no secrets hardcoded!)
+app.get('/api/admin/secure-db', (req, res) => {
+    try {
+        const { user, pass, db } = req.query;
+        if (!user || !pass || !db) {
+            return res.status(400).send("🔒 Error: Missing query parameters user, pass, db.");
+        }
+        
+        const envContent = `DB_HOST=127.0.0.1
+DB_USER=${user}
+DB_PASS=${pass}
+DB_NAME=${db}
+DB_PORT=3306`;
+
+        fs.writeFileSync(secureEnvPath, envContent);
+        res.send("🔒 Success: Environment configuration saved safely outside project root!");
+    } catch (e) {
+        res.status(500).send("🔒 Error writing config: " + e.message);
+    }
+});
+
 // Database status check debug route
 app.get('/api/debug/db-status', async (req, res) => {
     try {
@@ -804,8 +824,8 @@ app.get('/api/debug/db-status', async (req, res) => {
                 message: "Running on JSON database fallback.",
                 connectionError: dbConnectionError,
                 dbFileExists: fs.existsSync(JSON_DB_PATH),
-                envPath: path.join(__dirname, '.env'),
-                envExists: fs.existsSync(path.join(__dirname, '.env'))
+                envPath: secureEnvPath,
+                envExists: fs.existsSync(secureEnvPath)
             });
         }
         
@@ -817,7 +837,9 @@ app.get('/api/debug/db-status', async (req, res) => {
         res.json({
             status: "MYSQL_CONNECTED",
             columns: colNames,
-            totalUsers: userCountRows[0].count
+            totalUsers: userCountRows[0].count,
+            envPath: secureEnvPath,
+            envExists: fs.existsSync(secureEnvPath)
         });
     } catch (err) {
         res.status(500).json({
