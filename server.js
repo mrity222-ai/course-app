@@ -18,6 +18,7 @@ app.use(express.static(__dirname));
 // --- HYBRID DATABASE ADAPTER (MySQL with JSON File Fallback) ---
 let isMySQL = false;
 let dbPool = null;
+let dbConnectionError = null;
 const JSON_DB_PATH = path.join(__dirname, 'database_live.json');
 
 // Initialize JSON database with empty structure if not exists
@@ -115,6 +116,7 @@ async function initDatabase() {
 
     } catch (err) {
         isMySQL = false;
+        dbConnectionError = err.message + "\n" + err.stack;
         console.warn(`⚠️ MySQL Connection failed (${err.message}). Falling back to Local JSON database (database_live.json)`);
     }
 }
@@ -762,6 +764,39 @@ app.post('/api/config/sarvam_key', async (req, res) => {
         res.json({ success: true });
     } catch (e) {
         res.status(500).json({ error: e.message });
+    }
+});
+
+// Database status check debug route
+app.get('/api/debug/db-status', async (req, res) => {
+    try {
+        if (!isMySQL) {
+            return res.json({ 
+                status: "FALLBACK_JSON", 
+                message: "Running on JSON database fallback.",
+                connectionError: dbConnectionError,
+                dbFileExists: fs.existsSync(JSON_DB_PATH),
+                envPath: path.join(__dirname, '.env'),
+                envExists: fs.existsSync(path.join(__dirname, '.env'))
+            });
+        }
+        
+        const [columns] = await dbPool.query("SHOW COLUMNS FROM users");
+        const colNames = columns.map(c => c.Field);
+        
+        const [userCountRows] = await dbPool.query("SELECT COUNT(*) as count FROM users");
+        
+        res.json({
+            status: "MYSQL_CONNECTED",
+            columns: colNames,
+            totalUsers: userCountRows[0].count
+        });
+    } catch (err) {
+        res.status(500).json({
+            status: "ERROR",
+            message: err.message,
+            stack: err.stack
+        });
     }
 });
 
